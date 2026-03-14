@@ -55,7 +55,7 @@
       "continuous": true,
       "executor": "@angular/build:dev-server",
       "options": {
-        "proxyConfig": "frontend/proxy.conf.json"
+        "proxyConfig": "frontend/proxy.conf.mjs"
       },
       "configurations": {
         "production": {

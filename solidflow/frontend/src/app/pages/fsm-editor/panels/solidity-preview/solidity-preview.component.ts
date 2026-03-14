@@ -9,48 +9,52 @@ import {
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIconModule } from '@angular/material/icon';
 import type { FsmDefinition } from '@solidflow/shared';
 import { FsmApiService, CompileResult } from '../../../../core/services/fsm-api.service';
 
 @Component({
   selector: 'app-solidity-preview',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatProgressBarModule, MatIconModule],
   template: `
-    <div class="preview-container">
-      <div class="preview-header">
-        <span class="preview-title">Solidity Preview</span>
+    <div class="preview-wrap">
+      <div class="preview-status">
         @if (compiling()) {
-          <span class="badge compiling">Compiling…</span>
+          <mat-progress-bar mode="indeterminate" class="compile-bar" />
         } @else if (result()?.success) {
-          <span class="badge success">✓ Compiled</span>
+          <div class="status-row success">
+            <mat-icon>check_circle</mat-icon>
+            <span>Compiled successfully</span>
+          </div>
         } @else if (result() && !result()?.success) {
-          <span class="badge error">✗ Errors</span>
+          <div class="status-row error">
+            <mat-icon>error_outline</mat-icon>
+            <span>Compilation errors</span>
+          </div>
+          <div class="error-list">
+            @for (err of result()?.errors ?? []; track err) {
+              <div class="error-line">{{ err }}</div>
+            }
+          </div>
         }
       </div>
-
-      @if (result() && !result()?.success) {
-        <div class="error-banner">
-          @for (err of result()?.errors ?? []; track err) {
-            <div class="error-line">{{ err }}</div>
-          }
-        </div>
-      }
-
       <pre class="source-code">{{ source() }}</pre>
     </div>
   `,
   styles: [`
-    .preview-container { display: flex; flex-direction: column; height: 100%; }
-    .preview-header { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; border-bottom: 1px solid #e0e0e0; flex-shrink: 0; }
-    .preview-title { font-weight: 600; font-size: 0.875rem; }
-    .badge { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 10px; }
-    .badge.compiling { background: #fff9c4; color: #f57f17; }
-    .badge.success { background: #e8f5e9; color: #2e7d32; }
-    .badge.error { background: #ffebee; color: #c62828; }
-    .error-banner { background: #ffebee; border-bottom: 1px solid #ffcdd2; padding: 0.75rem 1rem; flex-shrink: 0; }
-    .error-line { font-family: monospace; font-size: 0.8rem; color: #c62828; margin-bottom: 0.25rem; }
-    .source-code { flex: 1; margin: 0; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.8rem; line-height: 1.5; overflow: auto; background: #1e1e1e; color: #d4d4d4; white-space: pre; }
+    :host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+    .preview-wrap { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+    .preview-status { flex-shrink: 0; }
+    .compile-bar { height: 2px; }
+    .status-row { display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; font-size: 0.75rem; font-weight: 600; }
+    .status-row mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .success { color: var(--sf-success); background: var(--sf-success-dim); }
+    .error { color: var(--sf-error); background: var(--sf-error-dim); }
+    .error-list { background: var(--sf-error-dim); border-top: 1px solid rgba(248,113,113,0.2); padding: 0.375rem 0.875rem 0.5rem; max-height: 80px; overflow-y: auto; }
+    .error-line { font-family: var(--sf-mono); font-size: 0.72rem; color: var(--sf-error); margin-bottom: 0.2rem; line-height: 1.4; }
+    .source-code { flex: 1; margin: 0; padding: 0.875rem; font-family: var(--sf-mono); font-size: 0.78rem; line-height: 1.6; overflow: auto; background: #030c17; color: #a8d4f5; white-space: pre; border: none; }
   `],
 })
 export class SolidityPreviewComponent implements OnChanges {
@@ -67,7 +71,7 @@ export class SolidityPreviewComponent implements OnChanges {
     this.change$
       .pipe(
         debounceTime(1500),
-        switchMap((def) => {
+        switchMap(() => {
           this.compiling.set(true);
           return this.api.compileSource(this.source());
         }),
@@ -86,8 +90,6 @@ export class SolidityPreviewComponent implements OnChanges {
   }
 
   private generateSource(): void {
-    // Generate a client-side preview by calling the compile POST endpoint
-    // We'll show a placeholder until the server responds
     const def = this.definition;
     const lines: string[] = [];
     lines.push('// SPDX-License-Identifier: MIT');

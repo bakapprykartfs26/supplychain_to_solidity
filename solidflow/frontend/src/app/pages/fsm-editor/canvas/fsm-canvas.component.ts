@@ -18,10 +18,26 @@ import { randomUUID } from './uuid';
 @Component({
   selector: 'app-fsm-canvas',
   standalone: true,
-  template: `<div class="canvas-host" #canvasHost></div>`,
+  template: `
+    <div class="canvas-host" #canvasHost></div>
+    @if (!definition.states.length) {
+      <div class="canvas-hint">
+        <div class="hint-glyph">◎</div>
+        <p class="hint-primary">Double-click to place a state</p>
+        <p class="hint-secondary">Drag between node borders to connect transitions</p>
+      </div>
+    }
+  `,
   styles: [`
-    :host { display: block; width: 100%; height: 100%; }
-    .canvas-host { width: 100%; height: 100%; background: #fafafa; }
+    :host { display: block; width: 100%; height: 100%; position: relative; }
+    .canvas-host { width: 100%; height: 100%; background: #07111e; }
+    .canvas-hint {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; pointer-events: none; gap: 0.25rem;
+    }
+    .hint-glyph { font-size: 3rem; color: #1e3a5f; line-height: 1; margin-bottom: 0.5rem; }
+    .hint-primary { margin: 0; font-family: 'Outfit', sans-serif; font-size: 0.9rem; color: #1e3a5f; font-weight: 500; }
+    .hint-secondary { margin: 0; font-family: 'Outfit', sans-serif; font-size: 0.75rem; color: #172d44; }
   `],
 })
 export class FsmCanvasComponent implements OnChanges, OnDestroy {
@@ -63,8 +79,8 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy {
       container: host,
       width: host.offsetWidth || 800,
       height: host.offsetHeight || 600,
-      background: { color: '#fafafa' },
-      grid: { visible: true, size: 20 },
+      background: { color: '#07111e' },
+      grid: { visible: true, size: 20, type: 'dot', args: { color: '#1e3a5f', thickness: 1.5 } },
       connecting: {
         snap: true,
         allowBlank: false,
@@ -73,7 +89,7 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy {
         connectionPoint: 'boundary',
         createEdge: () =>
           this.graph.createEdge({
-            attrs: { line: { stroke: '#333', targetMarker: { name: 'block', size: 8 } } },
+            attrs: { line: { stroke: '#29b6f6', targetMarker: { name: 'block', size: 8 } } },
             label: 'transition',
           }),
       },
@@ -96,8 +112,8 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy {
         height: 40,
         label: name,
         attrs: {
-          body: { fill: '#f5f5f5', stroke: '#333', rx: 6, ry: 6 },
-          label: { fill: '#333', fontSize: 13 },
+          body: { fill: '#122336', stroke: '#1a3350', rx: 6, ry: 6 },
+          label: { fill: '#d8eaf8', fontSize: 13, fontFamily: 'JetBrains Mono, monospace' },
         },
       });
       this.emitChange();

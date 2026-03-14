@@ -21,14 +21,15 @@ export function definitionToGraph(
       label: state,
       attrs: {
         body: {
-          fill: state === def.initialState ? '#1976d2' : '#f5f5f5',
-          stroke: '#333',
+          fill: state === def.initialState ? '#0a3a58' : '#122336',
+          stroke: state === def.initialState ? '#29b6f6' : '#1a3350',
           rx: 6,
           ry: 6,
         },
         label: {
-          fill: state === def.initialState ? '#fff' : '#333',
+          fill: state === def.initialState ? '#29b6f6' : '#d8eaf8',
           fontSize: 13,
+          fontFamily: 'JetBrains Mono, monospace',
         },
       },
     });
@@ -42,7 +43,8 @@ export function definitionToGraph(
       target: t.to,
       label: t.name,
       attrs: {
-        line: { stroke: '#333', targetMarker: { name: 'block', size: 8 } },
+        line: { stroke: '#29b6f6', targetMarker: { name: 'block', size: 8 } },
+        label: { fill: '#5a7fa0', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' },
       },
     });
   });

@@ -1,1 +1,171 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+// ── Circuit Noir Theme ──────────────────────────────────────────────────────
+// Deep navy darkness, electric-blue precision, amber warmth.
+// Typography: Syne (display) · Outfit (body) · JetBrains Mono (code)
+// ───────────────────────────────────────────────────────────────────────────
+
+$sf-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$cyan-palette,
+    tertiary: mat.$orange-palette,
+  ),
+  typography: (
+    brand-family: 'Epilogue, sans-serif',
+    plain-family: 'Manrope, sans-serif',
+  ),
+  density: (scale: -1),
+));
+
+html {
+  @include mat.all-component-themes($sf-theme);
+  color-scheme: dark;
+}
+
+// ── Design tokens ────────────────────────────────────────────────────────────
+:root {
+  --sf-bg:           #07111e;
+  --sf-surface:      #0d1d2e;
+  --sf-elevated:     #122336;
+  --sf-border:       #1a3350;
+  --sf-border-soft:  #112840;
+
+  --sf-primary:      #29b6f6;
+  --sf-primary-dim:  #0a3a58;
+  --sf-amber:        #ffab40;
+  --sf-amber-dim:    #3d2600;
+
+  --sf-text:         #d8eaf8;
+  --sf-text-muted:   #5a7fa0;
+  --sf-text-dim:     #3a5a78;
+
+  --sf-success:      #4ade80;
+  --sf-success-dim:  #052810;
+  --sf-error:        #f87171;
+  --sf-error-dim:    #300a0a;
+  --sf-warn:         #fbbf24;
+
+  --sf-mono:  'JetBrains Mono', 'Courier New', monospace;
+  --sf-sans:  'Manrope', sans-serif;
+  --sf-brand: 'Epilogue', sans-serif;
+
+  --sf-radius:    6px;
+  --sf-radius-lg: 10px;
+}
+
+// ── Reset & base ─────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--sf-sans);
+  font-size: 15px;
+  background: var(--sf-bg);
+  color: var(--sf-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ── Custom scrollbar ─────────────────────────────────────────────────────────
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: var(--sf-bg); }
+::-webkit-scrollbar-thumb        { background: var(--sf-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--sf-primary-dim); }
+
+// ── Material component overrides ──────────────────────────────────────────────
+
+.mat-toolbar {
+  font-family: var(--sf-brand) !important;
+  background: var(--sf-surface) !important;
+  border-bottom: 1px solid var(--sf-border) !important;
+}
+
+.mat-mdc-form-field {
+  --mdc-filled-text-field-container-color:               var(--sf-elevated);
+  --mdc-filled-text-field-focus-active-indicator-color:  var(--sf-primary);
+  --mdc-filled-text-field-label-text-color:              var(--sf-text-muted);
+  --mdc-filled-text-field-input-text-color:              var(--sf-text);
+  --mdc-filled-text-field-active-indicator-color:        var(--sf-border);
+}
+
+.mat-mdc-tab-group {
+  --mat-tab-header-active-label-text-color:    var(--sf-primary);
+  --mat-tab-header-active-indicator-color:     var(--sf-primary);
+  --mat-tab-header-inactive-label-text-color:  var(--sf-text-muted);
+  --mat-tab-header-background-color:           var(--sf-surface);
+}
+.mat-mdc-tab-header { border-bottom: 1px solid var(--sf-border) !important; }
+.mat-mdc-tab-body-wrapper { background: var(--sf-surface); }
+
+.mat-mdc-card {
+  --mdc-elevated-card-container-color: var(--sf-elevated);
+  --mdc-outlined-card-container-color: var(--sf-elevated);
+  border: 1px solid var(--sf-border) !important;
+}
+
+.mat-expansion-panel {
+  background: var(--sf-elevated) !important;
+  border: 1px solid var(--sf-border) !important;
+  border-radius: var(--sf-radius) !important;
+  box-shadow: none !important;
+  margin-bottom: 0.5rem;
+}
+.mat-expansion-panel-header         { background: var(--sf-elevated) !important; }
+.mat-expansion-panel-header:hover   { background: var(--sf-surface) !important; }
+.mat-expansion-panel-header-title   { color: var(--sf-text) !important; }
+
+.mat-mdc-select-value   { color: var(--sf-text) !important; }
+.mat-mdc-option         { background: var(--sf-elevated) !important; color: var(--sf-text) !important; }
+.mat-mdc-option:hover   { background: var(--sf-surface) !important; }
+.mat-mdc-select-panel   { background: var(--sf-elevated) !important; border: 1px solid var(--sf-border) !important; }
+
+.mat-mdc-slide-toggle {
+  --mdc-switch-selected-track-color:    var(--sf-primary);
+  --mdc-switch-selected-handle-color:   var(--sf-bg);
+  --mdc-switch-unselected-track-color:  var(--sf-border);
+  --mdc-switch-unselected-handle-color: var(--sf-text-muted);
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-flat-button.mat-primary {
+  background: var(--sf-primary) !important;
+  color: var(--sf-bg) !important;
+  font-family: var(--sf-sans) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+}
+
+.mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: var(--sf-primary);
+  --mdc-linear-progress-track-color:            var(--sf-border);
+}
+
+.mat-mdc-list-item { color: var(--sf-text) !important; }
+
+// ── Shared icon danger button (close / delete row) ────────────────────────
+.sf-icon-btn-danger {
+  // MDC icon-button: keep state-layer (ripple circle) same size as the button
+  --mdc-icon-button-state-layer-size: 30px !important;
+  width:  30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  color: var(--sf-text-dim) !important;
+  flex-shrink: 0;
+
+  &:not([disabled]):hover { color: var(--sf-error) !important; }
+
+  mat-icon {
+    font-size: 16px !important;
+    width:  16px !important;
+    height: 16px !important;
+    line-height: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}

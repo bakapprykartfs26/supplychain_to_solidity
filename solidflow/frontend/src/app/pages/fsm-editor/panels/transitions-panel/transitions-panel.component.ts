@@ -1,75 +1,118 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatExpansionModule } from '@angular/material/expansion';
 import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
 
 @Component({
   selector: 'app-transitions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatExpansionModule],
   template: `
     <div class="panel">
-      <h3>Transitions</h3>
+      <div class="section-header">
+        <mat-icon class="section-icon">arrow_forward</mat-icon>
+        <span class="section-title">Transitions</span>
+        <span class="count">{{ definition.transitions.length }}</span>
+      </div>
 
-      @for (t of definition.transitions; track t.id; let i = $index) {
-        <div class="transition-card">
-          <div class="card-header">
-            <input class="name-input" [ngModel]="t.name" (ngModelChange)="patchTransition(i, { name: $event })" placeholder="Name" />
-            <button class="btn-icon" (click)="removeTransition(i)">✕</button>
-          </div>
-          <div class="row2">
-            <div class="field">
-              <label>From</label>
-              <select [ngModel]="t.from" (ngModelChange)="patchTransition(i, { from: $event })">
-                @for (s of definition.states; track s) {
-                  <option [value]="s">{{ s }}</option>
-                }
-              </select>
-            </div>
-            <div class="arrow">→</div>
-            <div class="field">
-              <label>To</label>
-              <select [ngModel]="t.to" (ngModelChange)="patchTransition(i, { to: $event })">
-                @for (s of definition.states; track s) {
-                  <option [value]="s">{{ s }}</option>
-                }
-              </select>
-            </div>
-          </div>
-          <div class="field">
-            <label>Guard condition (Solidity expression)</label>
-            <input [ngModel]="t.guard ?? ''" (ngModelChange)="patchTransition(i, { guard: $event || undefined })" placeholder="e.g. msg.value > 0" />
-          </div>
-          <div class="check-row">
-            <label>
-              <input type="checkbox" [ngModel]="t.emitEvent ?? false" (ngModelChange)="patchTransition(i, { emitEvent: $event })" />
-              Emit event
-            </label>
-          </div>
-        </div>
+      @if (definition.transitions.length === 0) {
+        <p class="empty-hint">No transitions yet. Add one below or draw on the canvas.</p>
       }
 
-      <button class="btn-add" (click)="addTransition()">+ Add Transition</button>
+      <mat-accordion>
+        @for (t of definition.transitions; track t.id; let i = $index) {
+          <mat-expansion-panel>
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <span class="t-name">{{ t.name || 'Unnamed' }}</span>
+                <span class="t-route">{{ t.from }} → {{ t.to }}</span>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <div class="t-body">
+              <mat-form-field appearance="fill" class="full-width">
+                <mat-label>Function name</mat-label>
+                <input matInput [ngModel]="t.name" (ngModelChange)="patchTransition(i, { name: $event })" spellcheck="false" />
+              </mat-form-field>
+
+              <div class="route-row">
+                <mat-form-field appearance="fill" class="route-field">
+                  <mat-label>From</mat-label>
+                  <mat-select [ngModel]="t.from" (ngModelChange)="patchTransition(i, { from: $event })">
+                    @for (s of definition.states; track s) {
+                      <mat-option [value]="s">{{ s }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <span class="route-arrow">→</span>
+                <mat-form-field appearance="fill" class="route-field">
+                  <mat-label>To</mat-label>
+                  <mat-select [ngModel]="t.to" (ngModelChange)="patchTransition(i, { to: $event })">
+                    @for (s of definition.states; track s) {
+                      <mat-option [value]="s">{{ s }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="fill" class="full-width">
+                <mat-label>Guard condition</mat-label>
+                <input matInput [ngModel]="t.guard ?? ''" (ngModelChange)="patchTransition(i, { guard: $event || undefined })" placeholder="e.g. msg.value > 0" spellcheck="false" class="mono-input" />
+                <mat-hint>Solidity boolean expression</mat-hint>
+              </mat-form-field>
+
+              <div class="toggle-row">
+                <mat-slide-toggle
+                  [ngModel]="t.emitEvent ?? false"
+                  (ngModelChange)="patchTransition(i, { emitEvent: $event })"
+                  color="primary"
+                >
+                  Emit StateChanged event
+                </mat-slide-toggle>
+              </div>
+
+              <button mat-button class="remove-btn" (click)="removeTransition(i)">
+                <mat-icon>delete_outline</mat-icon>
+                Remove transition
+              </button>
+            </div>
+          </mat-expansion-panel>
+        }
+      </mat-accordion>
+
+      <button mat-stroked-button class="add-btn" (click)="addTransition()">
+        <mat-icon>add</mat-icon>
+        Add Transition
+      </button>
     </div>
   `,
   styles: [`
     .panel { padding: 1rem; }
-    h3 { margin: 0 0 1rem; font-size: 1rem; }
-    .transition-card { border: 1px solid #e0e0e0; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.75rem; }
-    .card-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-    .name-input { flex: 1; padding: 0.375rem 0.5rem; border: 1px solid #ccc; border-radius: 3px; font-size: 0.875rem; font-weight: 600; }
-    .row2 { display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .arrow { padding-bottom: 0.375rem; color: #666; }
-    .field { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
-    label { font-size: 0.75rem; color: #666; }
-    select, input[type=text], input:not([type]) { width: 100%; padding: 0.375rem 0.5rem; border: 1px solid #ccc; border-radius: 3px; font-size: 0.875rem; box-sizing: border-box; }
-    .check-row { margin-top: 0.5rem; font-size: 0.875rem; display: flex; gap: 0.5rem; align-items: center; }
-    .check-row label { display: flex; gap: 0.375rem; align-items: center; cursor: pointer; color: #333; font-size: 0.875rem; }
-    .btn-icon { background: none; border: none; cursor: pointer; color: #999; font-size: 1rem; }
-    .btn-icon:hover { color: #d32f2f; }
-    .btn-add { width: 100%; padding: 0.5rem; background: #f5f5f5; border: 1px dashed #ccc; border-radius: 4px; cursor: pointer; color: #555; }
-    .btn-add:hover { background: #eeeeee; }
+    .section-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .section-icon { color: var(--sf-amber); font-size: 18px; width: 18px; height: 18px; }
+    .section-title { font-family: var(--sf-brand); font-size: 0.85rem; font-weight: 700; color: var(--sf-text); letter-spacing: 0.05em; text-transform: uppercase; flex: 1; }
+    .count { font-family: var(--sf-mono); font-size: 0.72rem; color: var(--sf-text-muted); background: var(--sf-border); padding: 0.1rem 0.5rem; border-radius: 10px; }
+    .empty-hint { font-size: 0.8rem; color: var(--sf-text-muted); text-align: center; padding: 1rem 0; margin: 0 0 1rem; }
+    .t-name { font-family: var(--sf-mono); font-size: 0.82rem; color: var(--sf-text); font-weight: 500; }
+    .t-route { font-size: 0.75rem; color: var(--sf-text-muted); margin-left: 0.5rem; }
+    .t-body { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem; }
+    .full-width { width: 100%; }
+    .route-row { display: flex; align-items: center; gap: 0.5rem; }
+    .route-field { flex: 1; }
+    .route-arrow { color: var(--sf-amber); font-weight: 700; flex-shrink: 0; }
+    .mono-input { font-family: var(--sf-mono) !important; font-size: 0.82rem !important; }
+    .toggle-row { padding: 0.25rem 0; }
+    .remove-btn { color: var(--sf-error) !important; width: 100%; margin-top: 0.25rem; }
+    .add-btn { width: 100%; margin-top: 0.75rem; border-color: var(--sf-border) !important; color: var(--sf-text-muted) !important; border-style: dashed !important; }
+    .add-btn:hover { border-color: var(--sf-primary) !important; color: var(--sf-primary) !important; }
   `],
 })
 export class TransitionsPanelComponent {
@@ -83,16 +126,11 @@ export class TransitionsPanelComponent {
       from: this.definition.states[0] ?? '',
       to: this.definition.states[1] ?? this.definition.states[0] ?? '',
     };
-    this.definitionChange.emit({
-      ...this.definition,
-      transitions: [...this.definition.transitions, t],
-    });
+    this.definitionChange.emit({ ...this.definition, transitions: [...this.definition.transitions, t] });
   }
 
   patchTransition(index: number, partial: Partial<FsmTransition>): void {
-    const transitions = this.definition.transitions.map((t, i) =>
-      i === index ? { ...t, ...partial } : t,
-    );
+    const transitions = this.definition.transitions.map((t, i) => i === index ? { ...t, ...partial } : t);
     this.definitionChange.emit({ ...this.definition, transitions });
   }
 
