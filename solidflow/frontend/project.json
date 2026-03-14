@@ -20,12 +20,7 @@
             "input": "frontend/public"
           }
         ],
-        "styles": ["frontend/src/styles.scss"],
-        "server": "frontend/src/main.server.ts",
-        "ssr": {
-          "entry": "frontend/src/server.ts"
-        },
-        "outputMode": "server"
+        "styles": ["frontend/src/styles.scss"]
       },
       "configurations": {
         "production": {
@@ -84,7 +79,7 @@
       "options": {
         "buildTarget": "frontend:build",
         "port": 4200,
-        "staticFilePath": "dist/frontend/browser",
+        "staticFilePath": "dist/frontend",
         "spa": true
       }
     }

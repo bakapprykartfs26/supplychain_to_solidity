@@ -1,9 +1,7 @@
 # supplychain_to_solidity
 GUI to design a supply chain and convert it to solidity smart contracts. 
 
-## 🏗️ Architecture
-
-## 🏗️ Architecture
+## Architecture
 
 <!-- Build System -->
 [![Nx](https://img.shields.io/badge/Build%20System-Nx-143055?style=for-the-badge&logo=nx&logoColor=white)](https://nx.dev)

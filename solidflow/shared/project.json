@@ -23,6 +23,12 @@
       "options": {
         "jestConfig": "shared/jest.config.cts"
       }
+    },
+    "lint": {
+    "executor": "@nx/eslint:lint",
+    "options": {
+        "lintFilePatterns": ["shared/**/*.ts"]
+      }
     }
   }
 }
