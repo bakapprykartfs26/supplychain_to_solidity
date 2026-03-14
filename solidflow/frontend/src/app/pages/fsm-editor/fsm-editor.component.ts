@@ -6,6 +6,7 @@ import {
   signal,
   computed,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -26,6 +27,11 @@ import { TransitionsPanelComponent } from './panels/transitions-panel/transition
 import { VariablesPanelComponent } from './panels/variables-panel/variables-panel.component';
 import { PluginsPanelComponent } from './panels/plugins-panel/plugins-panel.component';
 import { SolidityPreviewComponent } from './panels/solidity-preview/solidity-preview.component';
+
+const PANEL_WIDTH_KEY = 'sf-panel-width';
+const PANEL_MIN = 240;
+const PANEL_MAX = 720;
+const PANEL_DEFAULT = 340;
 
 const BLANK_DEFINITION: FsmDefinition = {
   name: 'MyContract',
@@ -83,7 +89,7 @@ const BLANK_DEFINITION: FsmDefinition = {
         <mat-progress-bar mode="indeterminate" class="save-bar" />
       }
 
-      <div class="main-area">
+      <div class="main-area" [class.resizing]="isResizing">
         <!-- Canvas -->
         <div class="canvas-area">
           <app-fsm-canvas
@@ -92,8 +98,20 @@ const BLANK_DEFINITION: FsmDefinition = {
           />
         </div>
 
+        <!-- Resize handle -->
+        <div
+          class="resize-handle"
+          [class.active]="isResizing"
+          (mousedown)="onResizeStart($event)"
+          title="Drag to resize panel"
+        >
+          <div class="handle-track">
+            <div class="handle-grip"></div>
+          </div>
+        </div>
+
         <!-- Right panel -->
-        <div class="right-panel">
+        <div class="right-panel" [style.width.px]="panelWidth()">
           <mat-tab-group class="panel-tabs" animationDuration="150ms">
             <mat-tab label="States">
               <div class="tab-scroll">
@@ -155,10 +173,75 @@ const BLANK_DEFINITION: FsmDefinition = {
     .save-btn { border-radius: 6px !important; font-family: var(--sf-sans) !important; font-weight: 600 !important; }
     .save-bar { position: absolute; top: 52px; left: 0; right: 0; z-index: 5; }
 
+    /* ── Layout ─────────────────────────────────────────────────────────── */
     .main-area { display: flex; flex: 1; overflow: hidden; }
-    .canvas-area { flex: 1; overflow: hidden; background: var(--sf-bg); }
+    .main-area.resizing { cursor: col-resize; user-select: none; }
+    .main-area.resizing .canvas-area { pointer-events: none; }
 
-    .right-panel { width: 340px; flex-shrink: 0; border-left: 1px solid var(--sf-border); display: flex; flex-direction: column; background: var(--sf-surface); overflow: hidden; }
+    .canvas-area { flex: 1; overflow: hidden; background: var(--sf-bg); min-width: 0; }
+
+    /* ── Resize handle ──────────────────────────────────────────────────── */
+    .resize-handle {
+      width: 8px;
+      flex-shrink: 0;
+      cursor: col-resize;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .handle-track {
+      width: 2px;
+      height: 100%;
+      background: var(--sf-border);
+      transition: background 0.15s, box-shadow 0.15s, width 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+    }
+    .handle-grip {
+      width: 4px;
+      height: 32px;
+      border-radius: 4px;
+      background: var(--sf-border);
+      transition: background 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+    .handle-grip::before,
+    .handle-grip::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: var(--sf-text-dim);
+    }
+    .handle-grip::before { top: 8px; box-shadow: 0 6px 0 var(--sf-text-dim), 0 12px 0 var(--sf-text-dim); }
+    .handle-grip::after  { display: none; }
+
+    .resize-handle:hover .handle-track,
+    .resize-handle.active .handle-track {
+      width: 2px;
+      background: var(--sf-primary);
+      box-shadow: 0 0 8px var(--sf-primary);
+    }
+    .resize-handle:hover .handle-grip,
+    .resize-handle.active .handle-grip {
+      background: var(--sf-primary);
+      box-shadow: 0 0 6px var(--sf-primary);
+    }
+    .resize-handle:hover .handle-grip::before,
+    .resize-handle.active .handle-grip::before {
+      background: var(--sf-primary);
+      box-shadow: 0 6px 0 var(--sf-primary), 0 12px 0 var(--sf-primary);
+    }
+
+    /* ── Right panel ────────────────────────────────────────────────────── */
+    .right-panel { flex-shrink: 0; display: flex; flex-direction: column; background: var(--sf-surface); overflow: hidden; min-width: ${PANEL_MIN}px; max-width: ${PANEL_MAX}px; }
 
     .panel-tabs { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
     ::ng-deep .panel-tabs .mat-mdc-tab-body-wrapper { flex: 1; overflow: hidden; }
@@ -179,6 +262,7 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(FsmApiService);
+  private readonly doc = inject(DOCUMENT);
   private readonly destroy$ = new Subject<void>();
   private readonly autosave$ = new Subject<FsmDefinition>();
 
@@ -188,9 +272,18 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
   readonly previewCollapsed = signal(false);
   readonly isNew = computed(() => !this.definition().id);
 
+  readonly panelWidth = signal(PANEL_DEFAULT);
+  isResizing = false;
+
   ngOnInit(): void {
     const resolved = this.route.snapshot.data['fsm'] as FsmDefinition | undefined;
     if (resolved) this.definition.set(resolved);
+
+    // Restore saved panel width
+    try {
+      const saved = localStorage.getItem(PANEL_WIDTH_KEY);
+      if (saved) this.panelWidth.set(Math.max(PANEL_MIN, Math.min(PANEL_MAX, parseInt(saved, 10))));
+    } catch { /* localStorage unavailable in SSR */ }
 
     this.autosave$
       .pipe(debounceTime(3000), takeUntil(this.destroy$))
@@ -198,6 +291,33 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+
+  onResizeStart(e: MouseEvent): void {
+    e.preventDefault();
+    this.isResizing = true;
+
+    const startX = e.clientX;
+    const startWidth = this.panelWidth();
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX; // moving left = larger panel
+      this.panelWidth.set(Math.max(PANEL_MIN, Math.min(PANEL_MAX, startWidth + delta)));
+    };
+
+    const onUp = () => {
+      this.isResizing = false;
+      this.doc.body.style.cursor = '';
+      this.doc.body.style.userSelect = '';
+      try { localStorage.setItem(PANEL_WIDTH_KEY, String(this.panelWidth())); } catch { /* noop */ }
+      this.doc.removeEventListener('mousemove', onMove);
+      this.doc.removeEventListener('mouseup', onUp);
+    };
+
+    this.doc.body.style.cursor = 'col-resize';
+    this.doc.body.style.userSelect = 'none';
+    this.doc.addEventListener('mousemove', onMove);
+    this.doc.addEventListener('mouseup', onUp);
+  }
 
   patchDefinition(partial: Partial<FsmDefinition> | FsmDefinition): void {
     const isFullDef = 'states' in partial && 'transitions' in partial;
