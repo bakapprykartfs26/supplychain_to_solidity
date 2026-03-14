@@ -1,0 +1,83 @@
+// Plain AJV JSON schema for FsmDefinition — avoids strictNullChecks requirement of JSONSchemaType
+export const FSM_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string', minLength: 1 },
+    states: {
+      type: 'array',
+      items: { type: 'string', minLength: 1 },
+      minItems: 1,
+    },
+    initialState: { type: 'string', minLength: 1 },
+    transitions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string', minLength: 1 },
+          from: { type: 'string', minLength: 1 },
+          to: { type: 'string', minLength: 1 },
+          guard: { type: 'string' },
+          statements: { type: 'array', items: { type: 'string' } },
+          emitEvent: { type: 'boolean' },
+        },
+        required: ['id', 'name', 'from', 'to'],
+        additionalProperties: false,
+      },
+    },
+    variables: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          type: { type: 'string', minLength: 1 },
+          visibility: { type: 'string', enum: ['public', 'private', 'internal'] },
+          initialValue: { type: 'string' },
+        },
+        required: ['name', 'type'],
+        additionalProperties: false,
+      },
+    },
+    customTypes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          fields: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', minLength: 1 },
+                type: { type: 'string', minLength: 1 },
+              },
+              required: ['name', 'type'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['name', 'fields'],
+        additionalProperties: false,
+      },
+    },
+    plugins: {
+      type: 'object',
+      properties: {
+        locking: { type: 'boolean' },
+        accessControl: { type: 'boolean' },
+        transitionCounter: { type: 'boolean' },
+        timedTransitions: { type: 'boolean' },
+        event: { type: 'boolean' },
+      },
+      additionalProperties: false,
+    },
+    createdAt: { type: 'string' },
+    updatedAt: { type: 'string' },
+  },
+  required: ['name', 'states', 'initialState', 'transitions'],
+  additionalProperties: false,
+} as const;
