@@ -1,3 +1,7 @@
+# Local Nx cache 
+.nx/cache
+.nx/workspace-data
+
 # Angular specific
 /dist/
 /out-tsc/
