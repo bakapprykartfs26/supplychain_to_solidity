@@ -60,9 +60,23 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['definition'] && this.graph && !this.suppressChange) {
-      import('./x6-adapter').then(({ definitionToGraph }) => {
-        definitionToGraph(this.graph, this.definition);
-      });
+      const prev: FsmDefinition = changes['definition'].previousValue;
+      const next: FsmDefinition = changes['definition'].currentValue;
+
+      const statesChanged = JSON.stringify(prev?.states) !== JSON.stringify(next?.states);
+      const transitionsChanged = JSON.stringify(prev?.transitions) !== JSON.stringify(next?.transitions);
+
+      if (statesChanged || transitionsChanged) {
+        this.suppressChange = true;
+        import('./x6-adapter').then(({ definitionToGraph }) => {
+          definitionToGraph(this.graph, this.definition);
+          // Use setTimeout to ensure all X6 events fired by clearCells/addNode
+          // have been processed before re-enabling change emission
+          setTimeout(() => {
+            this.suppressChange = false;
+          }, 0);
+        });
+      }
     }
   }
 
@@ -104,19 +118,13 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy {
     // Double-click on canvas background → add state
     this.graph.on('blank:dblclick', ({ x, y }: { x: number; y: number }) => {
       const name = `State${this.graph.getNodes().length + 1}`;
-      this.graph.addNode({
-        id: name,
-        x,
-        y,
-        width: 120,
-        height: 40,
-        label: name,
-        attrs: {
-          body: { fill: '#122336', stroke: '#1a3350', rx: 6, ry: 6 },
-          label: { fill: '#d8eaf8', fontSize: 13, fontFamily: 'JetBrains Mono, monospace' },
-        },
-      });
-      this.emitChange();
+
+      const newDefinition: FsmDefinition = {
+        ...this.definition,
+        states: [...this.definition.states, name],
+      };
+
+      this.definitionChange.emit(newDefinition);
     });
 
     // Edge connected → emit change
