@@ -85,6 +85,17 @@ export function definitionToGraph(
           label: { fill: '#5a7fa0', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' },
         },
       });
+    } else {
+      // Edge exists — update source/target/label if changed
+      const edge = graph.getCellById(t.id) as Edge;
+      if (edge) {
+        const src = edge.getSource() as { cell?: string };
+        const tgt = edge.getTarget() as { cell?: string };
+        if (src.cell !== t.from) edge.setSource({ cell: t.from });
+        if (tgt.cell !== t.to) edge.setTarget({ cell: t.to });
+        const currentLabel = edge.getLabels?.()[0]?.['attrs']?.['label']?.['text'];
+        if (currentLabel !== t.name) edge.setLabels([t.name]);
+      }
     }
   });
 }
