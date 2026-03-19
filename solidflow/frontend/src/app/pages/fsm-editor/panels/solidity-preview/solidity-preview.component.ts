@@ -98,9 +98,26 @@ export class SolidityPreviewComponent implements OnChanges {
     lines.push(`contract ${def.name.replace(/[^a-zA-Z0-9_]/g, '_')} {`);
     lines.push(`    enum State { ${def.states.map((s) => s.replace(/[^a-zA-Z0-9_]/g, '_')).join(', ')} }`);
     lines.push(`    State public currentState = State.${def.initialState.replace(/[^a-zA-Z0-9_]/g, '_')};`);
+
     for (const t of def.transitions) {
-      lines.push(`    function ${t.name.replace(/[^a-zA-Z0-9_]/g, '_')}() public { /* ... */ }`);
+      const fnName = t.name.replace(/[^a-zA-Z0-9_]/g, '_');
+      const fromState = t.from.replace(/[^a-zA-Z0-9_]/g, '_');
+      const toState = t.to.replace(/[^a-zA-Z0-9_]/g, '_');
+
+      lines.push(`    function ${fnName}() public {`);
+      lines.push(`        require(currentState == State.${fromState}, "Invalid state");`);
+      if (t.guard) {
+        lines.push(`        require(${t.guard}, "Guard condition failed");`);
+      }
+      if (t.statements && t.statements.length > 0) {
+        for (const stmt of t.statements) {
+          lines.push(`        ${stmt};`);
+        }
+      }
+      lines.push(`        currentState = State.${toState};`);
+      lines.push(`    }`);
     }
+
     lines.push('}');
     this.source.set(lines.join('\n'));
   }
