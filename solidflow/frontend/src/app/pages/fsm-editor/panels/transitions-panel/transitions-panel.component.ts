@@ -8,13 +8,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
+import { StatementListComponent } from './statement-list.component';
 
 @Component({
   selector: 'app-transitions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatExpansionModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatExpansionModule, MatButtonToggleModule, StatementListComponent],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -68,29 +70,38 @@ import { randomUUID } from '../../canvas/uuid';
                 <input matInput [ngModel]="t.guard ?? ''" (ngModelChange)="patchTransition(i, { guard: $event || undefined })" placeholder="e.g. msg.value > 0" spellcheck="false" class="mono-input" />
                 <mat-hint>Solidity boolean expression</mat-hint>
               </mat-form-field>
-              <div class="stmt-section">                                                                                                                                                 
-              <span class="stmt-label">Statements</span>                                                                                                                                 
-                                                                                                                                                                                      
-              @for (stmt of (t.statements ?? []); track si; let si = $index) {
-                <div class="stmt-row">
-                  <input                                                                                                                                                                 
-                    class="stmt-input"
-                    [value]="stmt"                                                                                                                                                       
-                    (input)="updateStatement(i, si, $any($event.target).value)"                                                                                                        
-                    placeholder="e.g. balance[msg.sender] += 1;"
-                    spellcheck="false"                                                                                                                                                   
-                  />
-                  <button mat-icon-button class="stmt-del-btn" (click)="removeStatement(i, si)">                                                                                         
-                    <mat-icon>close</mat-icon>                                                                                                                                         
-                  </button>
+              <div class="stmt-section">
+                <div class="stmt-mode-row">
+                  <span class="stmt-label">Statements</span>
+                  <mat-button-toggle-group
+                    [value]="t.statementsMode ?? 'guided'"
+                    (change)="patchTransition(i, { statementsMode: $event.value })"
+                    class="mode-toggle"
+                  >
+                    <mat-button-toggle value="guided">
+                      <mat-icon>tune</mat-icon> Guided
+                    </mat-button-toggle>
+                    <mat-button-toggle value="code">
+                      <mat-icon>code</mat-icon> Code Editor
+                    </mat-button-toggle>
+                  </mat-button-toggle-group>
                 </div>
-              }                                                                                                                                                                          
-            
-              <button type="button" class="stmt-add-btn" (click)="addStatement(i)">                                                                                                      
-                <mat-icon>add</mat-icon>                                                                                                                                               
-                Add statement
-              </button>
-            </div>
+                @if ((t.statementsMode ?? 'guided') === 'guided') {
+                  <app-statement-list
+                    [statements]="t.statements ?? []"
+                    (statementsChange)="patchTransition(i, { statements: $event.length ? $event : undefined })"
+                  />
+                } @else {
+                  <textarea
+                    class="raw-code-editor"
+                    [value]="t.rawStatements ?? ''"
+                    (input)="patchTransition(i, { rawStatements: $any($event.target).value })"
+                    placeholder="// Write Solidity statements here..."
+                    spellcheck="false"
+                    rows="6"
+                  ></textarea>
+                }
+              </div>
 
               <div class="toggle-row">
                 <mat-slide-toggle
@@ -137,16 +148,15 @@ import { randomUUID } from '../../canvas/uuid';
     .add-btn { width: 100%; margin-top: 0.75rem; border-color: var(--sf-border) !important; color: var(--sf-text-muted) !important; border-style: dashed !important; }
     .add-btn:hover { border-color: var(--sf-primary) !important; color: var(--sf-primary) !important; }
     .stmt-section { display: flex; flex-direction: column; gap: 0.375rem; }
-    .stmt-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sf-text-muted); }                                         
-    .stmt-row { display: flex; align-items: center; gap: 0.375rem; }                                                                                                             
-    .stmt-input { flex: 1; min-width: 0; height: 34px; background: var(--sf-elevated); border: 1px solid var(--sf-border); border-radius: var(--sf-radius); padding: 0 0.625rem; 
-    font-family: var(--sf-mono); font-size: 0.82rem; color: var(--sf-text); outline: none; transition: border-color 0.15s; }                                                     
-    .stmt-input:focus { border-color: var(--sf-primary); }                                                                                                                     
-    .stmt-del-btn { color: var(--sf-error) !important; width: 28px; height: 28px; flex-shrink: 0; display: flex !important; align-items: center; justify-content: center; padding: 0 !important; line-height: 1; }                                                                              
-    .stmt-add-btn { display: flex; align-items: center; gap: 0.25rem; background: transparent; border: 1px dashed var(--sf-border); border-radius: var(--sf-radius); padding:    
-    0.25rem 0.5rem; color: var(--sf-text-muted); font-size: 0.78rem; cursor: pointer; width: 100%; transition: border-color 0.15s, color 0.15s; }                                
-    .stmt-add-btn:hover { border-color: var(--sf-primary); color: var(--sf-primary); }                                                                                           
-    .stmt-add-btn mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .stmt-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sf-text-muted); }
+    .stmt-mode-row { display: flex; align-items: center; justify-content: space-between; }
+    .mode-toggle { height: 28px; }
+    .mode-toggle ::ng-deep .mat-button-toggle { font-size: 0.75rem; height: 28px; }
+    .mode-toggle ::ng-deep .mat-button-toggle .mat-button-toggle-button { height: 28px; display: flex; align-items: center; justify-content: center; }
+    .mode-toggle ::ng-deep .mat-button-toggle .mat-button-toggle-label-content { display: flex; align-items: center; gap: 4px; line-height: 1; padding: 0 10px; }
+    .mode-toggle ::ng-deep .mat-button-toggle mat-icon { font-size: 14px; width: 14px; height: 14px; line-height: 14px; }
+    .raw-code-editor { width: 100%; min-height: 120px; resize: vertical; background: var(--sf-elevated); border: 1px solid var(--sf-border); border-radius: var(--sf-radius); padding: 0.5rem 0.625rem; font-family: var(--sf-mono); font-size: 0.82rem; color: var(--sf-text); outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+    .raw-code-editor:focus { border-color: var(--sf-primary); }
   `],
 })
 export class TransitionsPanelComponent {
@@ -173,20 +183,4 @@ export class TransitionsPanelComponent {
     this.definitionChange.emit({ ...this.definition, transitions });
   }
 
-  addStatement(tIndex: number): void {
-    const t = this.definition.transitions[tIndex];                                                                                                                             
-    this.patchTransition(tIndex, { statements: [...(t.statements ?? []), ''] });
-  }
-
-  updateStatement(tIndex: number, stmtIndex: number, value: string): void {                                                                                                    
-    const t = this.definition.transitions[tIndex];
-    const statements = (t.statements ?? []).map((s, i) => i === stmtIndex ? value : s);                                                                                        
-    this.patchTransition(tIndex, { statements });                                                                                                                            
-  }
-
-  removeStatement(tIndex: number, stmtIndex: number): void {                                                                                                                   
-    const t = this.definition.transitions[tIndex];
-    const statements = (t.statements ?? []).filter((_, i) => i !== stmtIndex);                                                                                                 
-    this.patchTransition(tIndex, { statements: statements.length ? statements : undefined });                                                                                
-  }
 }

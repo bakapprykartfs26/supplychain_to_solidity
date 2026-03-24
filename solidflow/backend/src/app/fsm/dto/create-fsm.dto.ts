@@ -31,8 +31,15 @@ export class FsmTransitionDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  statements?: string[];
+  statements?: (string | object)[];
+
+  @IsOptional()
+  @IsIn(['guided', 'code'])
+  statementsMode?: 'guided' | 'code';
+
+  @IsOptional()
+  @IsString()
+  rawStatements?: string;
 
   @IsOptional()
   @IsBoolean()

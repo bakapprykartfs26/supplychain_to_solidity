@@ -110,8 +110,12 @@ export class SolidityGenService {
         lines.push(`        require(${t.guard}, "Guard condition failed");`);
       }
 
-      for (const stmt of t.statements ?? []) {
-        lines.push(`        ${stmt}`);
+      if (t.statementsMode === 'code' && t.rawStatements) {
+        for (const line of t.rawStatements.split('\n')) {
+          lines.push(`        ${line}`);
+        }
+      } else {
+        lines.push(...this.generateStatements(t.statements ?? [], '        '));
       }
 
       const fromState = `State.${this.toIdentifier(t.from)}`;
@@ -136,6 +140,32 @@ export class SolidityGenService {
     lines.push('}');
 
     return lines.join('\n');
+  }
+
+  private generateStatements(stmts: import('@solidflow/shared').FsmStatement[], indent: string): string[] {
+    const lines: string[] = [];
+    for (const stmt of stmts) {
+      if (typeof stmt === 'string') {
+        lines.push(`${indent}${stmt}`);
+      } else if (stmt.type === 'for') {
+        lines.push(`${indent}for (${stmt.init}; ${stmt.condition}; ${stmt.increment}) {`);
+        lines.push(...this.generateStatements(stmt.body, indent + '    '));
+        lines.push(`${indent}}`);
+      } else if (stmt.type === 'if') {
+        lines.push(`${indent}if (${stmt.condition}) {`);
+        lines.push(...this.generateStatements(stmt.body, indent + '    '));
+        for (const ei of stmt.elseIfs) {
+          lines.push(`${indent}} else if (${ei.condition}) {`);
+          lines.push(...this.generateStatements(ei.body, indent + '    '));
+        }
+        if (stmt.elseBranch) {
+          lines.push(`${indent}} else {`);
+          lines.push(...this.generateStatements(stmt.elseBranch, indent + '    '));
+        }
+        lines.push(`${indent}}`);
+      }
+    }
+    return lines;
   }
 
   private toIdentifier(name: string): string {

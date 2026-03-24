@@ -11,8 +11,36 @@ import { Subject } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
-import type { FsmDefinition } from '@solidflow/shared';
+import type { FsmDefinition, FsmForLoop, FsmIfStatement, FsmStatement } from '@solidflow/shared';
 import { FsmApiService, CompileResult } from '../../../../core/services/fsm-api.service';
+
+function generateStatements(stmts: FsmStatement[], indent: string): string[] {
+  const lines: string[] = [];
+  for (const stmt of stmts) {
+    if (typeof stmt === 'string') {
+      lines.push(`${indent}${stmt}`);
+    } else if ((stmt as FsmForLoop).type === 'for') {
+      const s = stmt as FsmForLoop;
+      lines.push(`${indent}for (${s.init}; ${s.condition}; ${s.increment}) {`);
+      lines.push(...generateStatements(s.body, indent + '    '));
+      lines.push(`${indent}}`);
+    } else if ((stmt as FsmIfStatement).type === 'if') {
+      const s = stmt as FsmIfStatement;
+      lines.push(`${indent}if (${s.condition}) {`);
+      lines.push(...generateStatements(s.body, indent + '    '));
+      for (const ei of s.elseIfs) {
+        lines.push(`${indent}} else if (${ei.condition}) {`);
+        lines.push(...generateStatements(ei.body, indent + '    '));
+      }
+      if (s.elseBranch) {
+        lines.push(`${indent}} else {`);
+        lines.push(...generateStatements(s.elseBranch, indent + '    '));
+      }
+      lines.push(`${indent}}`);
+    }
+  }
+  return lines;
+}
 
 @Component({
   selector: 'app-solidity-preview',
@@ -109,11 +137,7 @@ export class SolidityPreviewComponent implements OnChanges {
       if (t.guard) {
         lines.push(`        require(${t.guard}, "Guard condition failed");`);
       }
-      if (t.statements && t.statements.length > 0) {
-        for (const stmt of t.statements) {
-          lines.push(`        ${stmt}`);
-        }
-      }
+      lines.push(...generateStatements(t.statements ?? [], '        '));
       lines.push(`        currentState = State.${toState};`);
       lines.push(`    }`);
     }
