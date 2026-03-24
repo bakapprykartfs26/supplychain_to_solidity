@@ -111,7 +111,7 @@ export class SolidityPreviewComponent implements OnChanges {
       }
       if (t.statements && t.statements.length > 0) {
         for (const stmt of t.statements) {
-          lines.push(`        ${stmt};`);
+          lines.push(`        ${stmt}`);
         }
       }
       lines.push(`        currentState = State.${toState};`);
