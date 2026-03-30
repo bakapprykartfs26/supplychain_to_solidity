@@ -1,10 +1,30 @@
+export interface FsmForLoop {
+  type: 'for';
+  init: string;
+  condition: string;
+  increment: string;
+  body: FsmStatement[];
+}
+
+export interface FsmIfStatement {
+  type: 'if';
+  condition: string;
+  body: FsmStatement[];
+  elseIfs: { condition: string; body: FsmStatement[] }[];
+  elseBranch?: FsmStatement[];
+}
+
+export type FsmStatement = string | FsmForLoop | FsmIfStatement;
+
 export interface FsmTransition {
   id: string;
   name: string;
   from: string;
   to: string;
   guard?: string;
-  statements?: string[];
+  statementsMode?: 'guided' | 'code';
+  statements?: FsmStatement[];
+  rawStatements?: string;
   emitEvent?: boolean;
 }
 

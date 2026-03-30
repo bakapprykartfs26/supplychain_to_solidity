@@ -54,7 +54,7 @@ import type { FsmDefinition } from '@solidflow/shared';
       </div>
 
       <div class="state-list">
-        @for (state of definition.states; track state; let i = $index) {
+        @for (state of definition.states; track i; let i = $index) {
           <div class="state-row" [class.is-initial]="state === definition.initialState">
             <span class="state-indicator">{{ state === definition.initialState ? '●' : '○' }}</span>
             <input

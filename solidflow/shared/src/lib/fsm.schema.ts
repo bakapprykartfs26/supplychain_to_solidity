@@ -20,7 +20,51 @@ export const FSM_JSON_SCHEMA = {
           from: { type: 'string', minLength: 1 },
           to: { type: 'string', minLength: 1 },
           guard: { type: 'string' },
-          statements: { type: 'array', items: { type: 'string' } },
+          statementsMode: { type: 'string', enum: ['guided', 'code'] },
+          rawStatements: { type: 'string' },
+          statements: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { type: 'string' },
+                {
+                  type: 'object',
+                  properties: {
+                    type:      { type: 'string', const: 'for' },
+                    init:      { type: 'string' },
+                    condition: { type: 'string' },
+                    increment: { type: 'string' },
+                    body:      { type: 'array' },
+                  },
+                  required: ['type', 'init', 'condition', 'increment', 'body'],
+                  additionalProperties: false,
+                },
+                {
+                  type: 'object',
+                  properties: {
+                    type:      { type: 'string', const: 'if' },
+                    condition: { type: 'string' },
+                    body:      { type: 'array' },
+                    elseIfs: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          condition: { type: 'string' },
+                          body: { type: 'array' },
+                        },
+                        required: ['condition', 'body'],
+                        additionalProperties: false,
+                      },
+                    },
+                    elseBranch: { type: 'array' },
+                  },
+                  required: ['type', 'condition', 'body', 'elseIfs'],
+                  additionalProperties: false,
+                },
+              ],
+            },
+          },
           emitEvent: { type: 'boolean' },
         },
         required: ['id', 'name', 'from', 'to'],
