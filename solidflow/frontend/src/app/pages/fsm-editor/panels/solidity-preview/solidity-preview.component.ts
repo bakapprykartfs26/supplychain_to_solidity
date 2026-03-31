@@ -187,8 +187,8 @@ export class SolidityPreviewComponent implements OnChanges {
       lines.push('');
     }
 
-    // Plugin: event
-    if (def.plugins?.event) {
+    // Plugin: event (or any transition with emitEvent)
+    if (def.plugins?.event || def.transitions.some(t => t.emitEvent)) {
       lines.push('    event StateChanged(State indexed from, State indexed to, string transitionName);');
       lines.push('');
     }

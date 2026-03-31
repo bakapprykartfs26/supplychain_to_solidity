@@ -8,6 +8,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import { FsmStatement } from '@solidflow/shared';
 
 export class FsmTransitionDto {
   @IsString()
@@ -31,7 +32,7 @@ export class FsmTransitionDto {
 
   @IsOptional()
   @IsArray()
-  statements?: (string | object)[];
+  statements?: FsmStatement[];
 
   @IsOptional()
   @IsIn(['guided', 'code'])
