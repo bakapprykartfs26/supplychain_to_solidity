@@ -193,6 +193,49 @@ export class SolidityPreviewComponent implements OnChanges {
       lines.push('');
     }
 
+
+    // Auto-declare state variables needed by guards
+    const guardTypes = new Set(
+      def.transitions.flatMap(t => t.guardConfig?.guards?.map(g => g.guard.type) ?? [])
+    );
+
+    if (guardTypes.has('access-control') && !def.plugins?.accessControl) {
+      // Collect all unique roles used across transitions
+      const roles = new Set(
+        def.transitions.flatMap(t =>
+          t.guardConfig?.guards
+            ?.filter(g => g.guard.type === 'access-control')
+            .map(g => (g.guard as import('@solidflow/shared').AccessControlGuard).role) ?? []
+        )
+      );
+      for (const role of roles) {
+        lines.push(`    address public ${role};`);
+      }
+      lines.push('');
+      lines.push('    constructor() {');
+      for (const role of roles) {
+        lines.push(`        ${role} = msg.sender;`);
+      }
+      lines.push('    }');
+      lines.push('');
+    }
+    if (guardTypes.has('pause')) {
+      lines.push('    bool public paused;');
+      lines.push('');
+    }
+    if (guardTypes.has('reentrancy') && !def.plugins?.locking) {
+      lines.push('    bool private _locked;');
+      lines.push('');
+    }
+    if (guardTypes.has('timelock') || guardTypes.has('cooldown')) {
+      lines.push('    uint256 public lastCall;');
+      lines.push('');
+    }
+    if (guardTypes.has('freshness')) {
+      lines.push('    uint256 public lastUpdate;');
+      lines.push('');
+    }
+
     // Contract variables
     for (const v of def.variables ?? []) {
       const vis = v.visibility ?? 'public';
@@ -211,9 +254,28 @@ export class SolidityPreviewComponent implements OnChanges {
       if (def.plugins?.accessControl) modifiers.push('onlyOwner');
       const modStr = modifiers.length ? ' ' + modifiers.join(' ') : '';
 
-      lines.push(`    function ${fnName}() public${modStr} {`);
+      // Inside the transition functions loop, replace the function signature line:
+      const needsPayable = t.guardConfig?.guards?.some(g =>
+        g.guard.type === 'input-validation' &&
+        (g.guard as import('@solidflow/shared').InputValidationGuard).expression.includes('msg.value')
+      ) || t.guard?.includes('msg.value');
+
+      const visibility = needsPayable ? 'public payable' : 'public';
+
+      lines.push(`    function ${fnName}() ${visibility}${modStr} {`);
+      
       lines.push(`        require(currentState == ${fromState}, "Invalid state");`);
 
+      // Structured guard conditions
+      if (t.guardConfig?.guards?.length) {
+        t.guardConfig.guards.forEach((entry, i) => {
+          const expr = this.guardToExpression(entry.guard);
+          const op = i < t.guardConfig!.guards.length - 1 ? ` // ${entry.operator}` : '';
+          lines.push(`        require(${expr}, "${entry.guard.type} check failed");${op}`);
+        });
+      }
+
+      // Legacy string guard (backward compat)
       if (t.guard) {
         lines.push(`        require(${t.guard}, "Guard condition failed");`);
       }
@@ -243,6 +305,26 @@ export class SolidityPreviewComponent implements OnChanges {
 
     lines.push('}');
     this.source.set(lines.join('\n'));
+  }
+
+  private guardToExpression(guard: import('@solidflow/shared').FsmGuard): string {
+    switch (guard.type) {
+      case 'access-control':     return `msg.sender == ${guard.role === 'owner' ? 'owner' : guard.role}`;
+      case 'input-validation':   return guard.expression;
+      case 'state-precondition': return `currentState == State.${guard.state}`;
+      case 'pause':              return `!paused`;
+      case 'postcondition':      return guard.expression;
+      case 'event-emission':     return `true /* emit ${guard.eventName} */`;
+      case 'return-value':       return guard.expression;
+      case 'reentrancy':         return `!locked`;
+      case 'deadline':           return `block.timestamp <= ${guard.timestamp}`;
+      case 'timelock':           return `block.timestamp >= lastCall + ${guard.delay}`;
+      case 'cooldown':           return `block.timestamp >= lastCall + ${guard.interval}`;
+      case 'window':             return `block.timestamp >= ${guard.start} && block.timestamp <= ${guard.end}`;
+      case 'source-whitelist':   return `msg.sender == ${guard.address}`;
+      case 'freshness':          return `block.timestamp - lastUpdate <= ${guard.maxAge}`;
+      case 'sanity-bound':       return `value >= ${guard.min} && value <= ${guard.max}`;
+    }
   }
 
   private toIdentifier(name: string): string {

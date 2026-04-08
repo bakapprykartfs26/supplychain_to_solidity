@@ -12,11 +12,12 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
 import { StatementListComponent } from './statement-list.component';
+import { GuardSelectorComponent } from './guard-selector.component';
 
 @Component({
   selector: 'app-transitions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatExpansionModule, MatButtonToggleModule, StatementListComponent],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatExpansionModule, MatButtonToggleModule, StatementListComponent, GuardSelectorComponent],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -65,11 +66,11 @@ import { StatementListComponent } from './statement-list.component';
                 </mat-form-field>
               </div>
 
-              <mat-form-field appearance="fill" class="full-width">
-                <mat-label>Guard condition</mat-label>
-                <input matInput [ngModel]="t.guard ?? ''" (ngModelChange)="patchTransition(i, { guard: $event || undefined })" placeholder="e.g. msg.value > 0" spellcheck="false" class="mono-input" />
-                <mat-hint>Solidity boolean expression</mat-hint>
-              </mat-form-field>
+              <app-guard-selector
+                [guardConfig]="t.guardConfig"
+                [states]="definition.states"
+                (guardConfigChange)="patchTransition(i, { guardConfig: $any($event) })"
+              />
               <div class="stmt-section">
                 <div class="stmt-mode-row">
                   <span class="stmt-label">Statements</span>
