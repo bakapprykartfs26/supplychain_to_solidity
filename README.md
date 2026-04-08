@@ -73,3 +73,8 @@ GUI to design a supply chain and convert it to solidity smart contracts.
 
 ### Install backend dependencies
 1. Install webpack-cli `npm install webpack-cli --save-dev`
+
+### Run Application
+1. Frontend: `nx serve frontend`
+2. Backend: `nx serve backend`
+3. Open http://localhost:4200/
