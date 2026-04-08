@@ -2,6 +2,22 @@ import type { Graph, Node, Edge } from '@antv/x6';
 import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from './uuid';
 
+function getSelfLoopRouterArgs(
+  transition: FsmTransition,
+  transitions: FsmTransition[],
+) {
+  const selfLoops = transitions.filter((t) => t.from === transition.from && t.to === transition.to);
+  const loopIndex = selfLoops.findIndex((t) => t.id === transition.id);
+  const baseHeight = 50;
+  const baseWidth = 1;
+  const extraStep = 0;
+  return {
+    angle: 90,
+    width: baseHeight + loopIndex * 25,
+    height: baseWidth + loopIndex * extraStep,
+  };
+}
+
 export function definitionToGraph(
   graph: Graph,
   def: FsmDefinition,
@@ -75,11 +91,15 @@ export function definitionToGraph(
 
   def.transitions.forEach((t) => {
     if (!existingEdgeIds.has(t.id)) {
+      const isSelfLoop = t.from === t.to;
       graph.addEdge({
         id: t.id,
-        source: t.from,
-        target: t.to,
+        source: isSelfLoop ? { cell: t.from, anchor: 'right' } : t.from,
+        target: isSelfLoop ? { cell: t.to, anchor: 'left' } : t.to,
         label: t.name,
+        router: isSelfLoop
+          ? { name: 'loop', args: getSelfLoopRouterArgs(t, def.transitions) }
+          : undefined,
         attrs: {
           line: { stroke: '#29b6f6', targetMarker: { name: 'block', size: 8 } },
           label: { fill: '#5a7fa0', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' },
@@ -91,8 +111,16 @@ export function definitionToGraph(
       if (edge) {
         const src = edge.getSource() as { cell?: string };
         const tgt = edge.getTarget() as { cell?: string };
-        if (src.cell !== t.from) edge.setSource({ cell: t.from });
-        if (tgt.cell !== t.to) edge.setTarget({ cell: t.to });
+        const isSelfLoop = t.from === t.to;
+        if (isSelfLoop) {
+          if (src.cell !== t.from) edge.setSource({ cell: t.from, anchor: 'right' });
+          if (tgt.cell !== t.to) edge.setTarget({ cell: t.to, anchor: 'left' });
+          edge.setRouter({ name: 'loop', args: getSelfLoopRouterArgs(t, def.transitions) });
+        } else {
+          if (src.cell !== t.from) edge.setSource({ cell: t.from });
+          if (tgt.cell !== t.to) edge.setTarget({ cell: t.to });
+          edge.setRouter({ name: 'normal' });
+        }
         const currentLabel = edge.getLabels?.()[0]?.['attrs']?.['label']?.['text'];
         if (currentLabel !== t.name) edge.setLabels([t.name]);
       }
