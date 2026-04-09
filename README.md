@@ -44,6 +44,7 @@ GUI to design a supply chain and convert it to solidity smart contracts.
 ## Install prerequisites
 
 ### Install node.js
+#### Linux
 1. Check node version: `node --version` should print v20.x.x
 2. If your node version is current, you can stop here
 3. Install nvm `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash`
@@ -51,13 +52,26 @@ GUI to design a supply chain and convert it to solidity smart contracts.
 5. Run `nvm install 20 && nvm use 20`
 6. Verify `node --version` should print v20.x.x
 7. Done
+#### Windows
+1. Check node version: `node --version` should print v20.x.x
+2. If your node version is current, you can stop here
+3. Install node.js from [Node.js Website](https://nodejs.org/en/download)
+4. Check node version: `node --version` should print v20.x.x
 
 ### Install nx
 1. Install nx globally `npm install -g nx`
-2. Install Angular plugin `npm install -D @nx/angular`
-3. Install NestJS plugin `npm install -D @nx/nest`
+2. Initiate nx `npx nx@latest init`
+3. Install Angular plugin `npm install -D @nx/angular`
+4. Install NestJS plugin `npm install -D @nx/nest`
 
-### Install project specific components
+### Run Application
+1. Frontend: `nx serve frontend`
+2. Backend: `nx serve backend`
+3. Open http://localhost:4200/
+
+### Optional installation steps if components are missing
+
+#### Install project specific components
 1. Install antv `npminstall @antv/x6` 
    - Diagramming / Graph visualization (Used for Supplychain vizualization)
 2. Install JSON validater `npm install ajv`
@@ -68,13 +82,8 @@ GUI to design a supply chain and convert it to solidity smart contracts.
 5. Install solc `npm install solc`
    - Solidity compiler for Node.js
 
-### Install frontend dependencies
+#### Install frontend dependencies
 1. Install Cypress `npm install @nx/cypress --save-dev`
 
-### Install backend dependencies
+#### Install backend dependencies
 1. Install webpack-cli `npm install webpack-cli --save-dev`
-
-### Run Application
-1. Frontend: `nx serve frontend`
-2. Backend: `nx serve backend`
-3. Open http://localhost:4200/
