@@ -26,16 +26,23 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
           <div class="var-row-top">
             <mat-form-field appearance="fill" class="var-type">
               <mat-label>Type</mat-label>
-              <input matInput [ngModel]="v.type" (ngModelChange)="patch(i, { type: $event })" placeholder="uint256" spellcheck="false" class="mono" />
+              <mat-select [ngModel]="v.type" (ngModelChange)="patch(i, { type: $event })">
+                @for (type of getAvailableTypes(); track type) {
+                  <mat-option [value]="type">{{ type }}</mat-option>
+                }
+              </mat-select>
             </mat-form-field>
+
             <mat-form-field appearance="fill" class="var-name">
               <mat-label>Name</mat-label>
               <input matInput [ngModel]="v.name" (ngModelChange)="patch(i, { name: $event })" spellcheck="false" class="mono" />
             </mat-form-field>
+
             <button mat-icon-button class="sf-icon-btn-danger" (click)="remove(i)">
               <mat-icon>close</mat-icon>
             </button>
           </div>
+
           <div class="var-row-bot">
             <mat-form-field appearance="fill" class="var-vis">
               <mat-label>Visibility</mat-label>
@@ -45,6 +52,7 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
                 <mat-option value="internal">internal</mat-option>
               </mat-select>
             </mat-form-field>
+
             <mat-form-field appearance="fill" class="var-init">
               <mat-label>Initial value</mat-label>
               <input matInput [ngModel]="v.initialValue ?? ''" (ngModelChange)="patch(i, { initialValue: $event || undefined })" placeholder="optional" spellcheck="false" class="mono" />
@@ -84,12 +92,18 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
                 <div class="field-row">
                   <mat-form-field appearance="fill" class="field-type">
                     <mat-label>Type</mat-label>
-                    <input matInput [ngModel]="field.type" (ngModelChange)="patchTypeField(ci, fi, 'type', $event)" spellcheck="false" class="mono" />
+                    <mat-select [ngModel]="field.type" (ngModelChange)="patchTypeField(ci, fi, 'type', $event)">
+                      @for (type of getAvailableTypes(); track type) {
+                        <mat-option [value]="type">{{ type }}</mat-option>
+                      }
+                    </mat-select>
                   </mat-form-field>
+
                   <mat-form-field appearance="fill" class="field-name">
                     <mat-label>Field name</mat-label>
                     <input matInput [ngModel]="field.name" (ngModelChange)="patchTypeField(ci, fi, 'name', $event)" spellcheck="false" class="mono" />
                   </mat-form-field>
+
                   <button mat-icon-button class="sf-icon-btn-danger" (click)="removeTypeField(ci, fi)">
                     <mat-icon>close</mat-icon>
                   </button>
@@ -125,7 +139,7 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
     .var-card { background: var(--sf-elevated); border: 1px solid var(--sf-border); border-radius: var(--sf-radius); padding: 0.75rem 0.75rem 0.25rem; margin-bottom: 0.5rem; }
     .var-row-top { display: flex; gap: 0.5rem; align-items: flex-start; }
     .var-row-bot { display: flex; gap: 0.5rem; }
-    .var-type { flex: 0 0 120px; }
+    .var-type { flex: 0 0 160px; }
     .var-name { flex: 1; }
     .var-vis { flex: 0 0 110px; }
     .var-init { flex: 1; }
@@ -138,7 +152,7 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
     .struct-meta { font-size: 0.75rem; color: var(--sf-text-muted); margin-left: 0.5rem; }
     .struct-body { display: flex; flex-direction: column; gap: 0.5rem; }
     .field-row { display: flex; gap: 0.5rem; align-items: flex-start; }
-    .field-type { flex: 0 0 110px; }
+    .field-type { flex: 0 0 160px; }
     .field-name { flex: 1; }
     .struct-actions { display: flex; justify-content: space-between; margin-top: 0.25rem; }
     .add-field-btn { color: var(--sf-primary) !important; font-size: 0.8rem; }
@@ -149,8 +163,44 @@ export class VariablesPanelComponent {
   @Input() definition!: FsmDefinition;
   @Output() definitionChange = new EventEmitter<FsmDefinition>();
 
+  readonly solidityPrimitiveTypes: string[] = [
+    'uint256',
+    'int256',
+    'string',
+    'bool',
+    'address',
+    'bytes',
+    'bytes1',
+    'bytes2',
+    'bytes4',
+    'bytes8',
+    'bytes16',
+    'bytes32',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'uint128',
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'int128',
+  ];
+
+  getAvailableTypes(): string[] {
+    const customTypeNames = (this.definition.customTypes ?? []).map((ct) => ct.name);
+    return [...this.solidityPrimitiveTypes, ...customTypeNames];
+  }
+
   add(): void {
-    const v: FsmContractVariable = { name: `var${(this.definition.variables ?? []).length + 1}`, type: 'uint256', visibility: 'public' };
+    const v: FsmContractVariable = {
+      name: `var${(this.definition.variables ?? []).length + 1}`,
+      type: 'uint256',
+      visibility: 'public',
+    };
     this.definitionChange.emit({ ...this.definition, variables: [...(this.definition.variables ?? []), v] });
   }
 
