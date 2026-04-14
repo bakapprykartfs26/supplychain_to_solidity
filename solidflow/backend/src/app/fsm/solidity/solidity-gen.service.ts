@@ -77,13 +77,22 @@ export class SolidityGenService {
       lines.push('');
     }
 
-    // Plugin: event (or any transition with emitEvent)
-    if (def.plugins?.event || def.transitions.some((t) => t.emitEvent)) {
+    // Plugin: event (or any transition with legacy boolean emitEvent)
+    if (def.plugins?.event || def.transitions.some((t) => t.emitEvent === true as unknown as string)) {
       lines.push(
-        '    event StateChanged(State indexed from, State indexed to, string transitionName);',
+        '    event StateChanged(State newState);',
       );
       lines.push('');
     }
+
+    // Custom events
+    for (const ev of def.events ?? []) {
+      const params = ev.params
+        .map((p) => `${p.type}${p.indexed ? ' indexed' : ''} ${p.name}`)
+        .join(', ');
+      lines.push(`    event ${this.toIdentifier(ev.name)}(${params});`);
+    }
+    if ((def.events ?? []).length > 0) lines.push('');
 
     // Contract variables
     for (const v of def.variables ?? []) {
@@ -128,8 +137,18 @@ export class SolidityGenService {
         lines.push('        transitionCount++;');
       }
 
-      if (def.plugins?.event || t.emitEvent) {
-        lines.push(`        emit StateChanged(${fromState}, ${toState}, "${t.name}");`);
+      if (def.plugins?.event || t.emitEvent === true as unknown as string) {
+        lines.push(`        emit StateChanged(${toState});`);
+      }
+
+      if (t.emitEvent && t.emitEvent !== '' && t.emitEvent !== 'true') {
+        const evDef = (def.events ?? []).find((e) => e.name === t.emitEvent);
+        if (evDef) {
+          const args = evDef.params
+            .map((p, idx) => t.emitEventArgs?.[idx] || `0 /* ${p.name} */`)
+            .join(', ');
+          lines.push(`        emit ${this.toIdentifier(t.emitEvent)}(${args});`);
+        }
       }
 
       lines.push(`        currentState = ${toState};`);

@@ -16,6 +16,17 @@ export interface FsmIfStatement {
 
 export type FsmStatement = string | FsmForLoop | FsmIfStatement;
 
+export interface FsmEventParam {
+  name: string;
+  type: string;
+  indexed?: boolean;
+}
+
+export interface FsmEvent {
+  name: string;
+  params: FsmEventParam[];
+}
+
 export interface FsmTransition {
   id: string;
   name: string;
@@ -26,7 +37,8 @@ export interface FsmTransition {
   statementsMode?: 'guided' | 'code';
   statements?: FsmStatement[];
   rawStatements?: string;
-  emitEvent?: boolean;
+  emitEvent?: string;
+  emitEventArgs?: string[];
 }
 
 export interface FsmContractVariable {
@@ -57,6 +69,7 @@ export interface FsmDefinition {
   transitions: FsmTransition[];
   variables?: FsmContractVariable[];
   customTypes?: FsmCustomType[];
+  events?: FsmEvent[];
   plugins?: FsmPlugins;
   createdAt?: string;
   updatedAt?: string;
