@@ -43,8 +43,13 @@ export class FsmTransitionDto {
   rawStatements?: string;
 
   @IsOptional()
-  @IsBoolean()
-  emitEvent?: boolean;
+  @IsString()
+  emitEvent?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  emitEventArgs?: string[];
 }
 
 export class FsmContractVariableDto {
@@ -84,6 +89,31 @@ export class FsmCustomTypeDto {
   @ValidateNested({ each: true })
   @Type(() => FsmCustomTypeFieldDto)
   fields!: FsmCustomTypeFieldDto[];
+}
+
+export class FsmEventParamDto {
+  @IsString()
+  @MinLength(1)
+  name!: string;
+
+  @IsString()
+  @MinLength(1)
+  type!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  indexed?: boolean;
+}
+
+export class FsmEventDto {
+  @IsString()
+  @MinLength(1)
+  name!: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FsmEventParamDto)
+  params!: FsmEventParamDto[];
 }
 
 export class FsmPluginsDto {
@@ -137,6 +167,12 @@ export class CreateFsmDto {
   @ValidateNested({ each: true })
   @Type(() => FsmCustomTypeDto)
   customTypes?: FsmCustomTypeDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FsmEventDto)
+  events?: FsmEventDto[];
 
   @IsOptional()
   @ValidateNested()

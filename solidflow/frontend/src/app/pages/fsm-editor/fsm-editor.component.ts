@@ -26,6 +26,7 @@ import { StatesPanelComponent } from './panels/states-panel/states-panel.compone
 import { TransitionsPanelComponent } from './panels/transitions-panel/transitions-panel.component';
 import { VariablesPanelComponent } from './panels/variables-panel/variables-panel.component';
 import { PluginsPanelComponent } from './panels/plugins-panel/plugins-panel.component';
+import { EventsPanelComponent } from './panels/events-panel/events-panel.component';
 import { SolidityPreviewComponent } from './panels/solidity-preview/solidity-preview.component';
 
 const PANEL_WIDTH_KEY = 'sf-panel-width';
@@ -48,7 +49,7 @@ const BLANK_DEFINITION: FsmDefinition = {
     MatToolbarModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatTabsModule, MatProgressBarModule,
     FsmCanvasComponent, StatesPanelComponent, TransitionsPanelComponent,
-    VariablesPanelComponent, PluginsPanelComponent, SolidityPreviewComponent,
+    VariablesPanelComponent, PluginsPanelComponent, EventsPanelComponent, SolidityPreviewComponent,
   ],
   template: `
     <div class="editor-shell">
@@ -126,6 +127,11 @@ const BLANK_DEFINITION: FsmDefinition = {
             <mat-tab label="Variables">
               <div class="tab-scroll">
                 <app-variables-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              </div>
+            </mat-tab>
+            <mat-tab label="Events">
+              <div class="tab-scroll">
+                <app-events-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
               </div>
             </mat-tab>
             <mat-tab label="Plugins">

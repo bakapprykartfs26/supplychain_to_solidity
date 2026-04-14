@@ -6,7 +6,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
@@ -17,7 +16,7 @@ import { GuardSelectorComponent } from './guard-selector.component';
 @Component({
   selector: 'app-transitions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatExpansionModule, MatButtonToggleModule, StatementListComponent, GuardSelectorComponent],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule, MatButtonToggleModule, StatementListComponent, GuardSelectorComponent],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -104,14 +103,37 @@ import { GuardSelectorComponent } from './guard-selector.component';
                 }
               </div>
 
-              <div class="toggle-row">
-                <mat-slide-toggle
-                  [ngModel]="t.emitEvent ?? false"
-                  (ngModelChange)="patchTransition(i, { emitEvent: $event })"
-                  color="primary"
-                >
-                  Emit StateChanged event
-                </mat-slide-toggle>
+              <div class="event-emit-section">
+                <mat-form-field appearance="fill" class="full-width">
+                  <mat-label>Emit event</mat-label>
+                  <mat-select
+                    [ngModel]="t.emitEvent ?? ''"
+                    (ngModelChange)="patchTransition(i, { emitEvent: $event || undefined, emitEventArgs: undefined })"
+                  >
+                    <mat-option value="">None</mat-option>
+                    @for (ev of definition.events ?? []; track ev.name) {
+                      <mat-option [value]="ev.name">{{ ev.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                @if (getSelectedEvent(t.emitEvent); as ev) {
+                  @if (ev.params.length > 0) {
+                    <div class="args-label">Arguments for <span class="mono-inline">{{ ev.name }}</span></div>
+                    @for (p of ev.params; track p.name; let pi = $index) {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>{{ p.type }}{{ p.indexed ? ' indexed' : '' }} {{ p.name }}</mat-label>
+                        <input
+                          matInput
+                          [ngModel]="t.emitEventArgs?.[pi] ?? ''"
+                          (ngModelChange)="patchArg(i, pi, $event)"
+                          spellcheck="false"
+                          class="mono-input"
+                        />
+                      </mat-form-field>
+                    }
+                  }
+                }
               </div>
 
               <button mat-button class="remove-btn" (click)="removeTransition(i)">
@@ -144,7 +166,9 @@ import { GuardSelectorComponent } from './guard-selector.component';
     .route-field { flex: 1; }
     .route-arrow { color: var(--sf-amber); font-weight: 700; flex-shrink: 0; }
     .mono-input { font-family: var(--sf-mono) !important; font-size: 0.82rem !important; }
-    .toggle-row { padding: 0.25rem 0; }
+    .event-emit-section { display: flex; flex-direction: column; gap: 0.375rem; }
+    .args-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sf-text-muted); }
+    .mono-inline { font-family: var(--sf-mono); text-transform: none; letter-spacing: 0; }
     .remove-btn { color: var(--sf-error) !important; width: 100%; margin-top: 0.25rem; }
     .add-btn { width: 100%; margin-top: 0.75rem; border-color: var(--sf-border) !important; color: var(--sf-text-muted) !important; border-style: dashed !important; }
     .add-btn:hover { border-color: var(--sf-primary) !important; color: var(--sf-primary) !important; }
@@ -182,6 +206,17 @@ export class TransitionsPanelComponent {
   removeTransition(index: number): void {
     const transitions = this.definition.transitions.filter((_, i) => i !== index);
     this.definitionChange.emit({ ...this.definition, transitions });
+  }
+
+  getSelectedEvent(eventName: string | undefined) {
+    if (!eventName) return null;
+    return (this.definition.events ?? []).find((e) => e.name === eventName) ?? null;
+  }
+
+  patchArg(ti: number, pi: number, value: string): void {
+    const args = [...(this.definition.transitions[ti].emitEventArgs ?? [])];
+    args[pi] = value;
+    this.patchTransition(ti, { emitEventArgs: args });
   }
 
 }

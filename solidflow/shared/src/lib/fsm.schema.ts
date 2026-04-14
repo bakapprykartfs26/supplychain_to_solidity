@@ -65,7 +65,8 @@ export const FSM_JSON_SCHEMA = {
               ],
             },
           },
-          emitEvent: { type: 'boolean' },
+          emitEvent: { oneOf: [{ type: 'boolean' }, { type: 'string' }] },
+          emitEventArgs: { type: 'array', items: { type: 'string' } },
         },
         required: ['id', 'name', 'from', 'to'],
         additionalProperties: false,
@@ -105,6 +106,30 @@ export const FSM_JSON_SCHEMA = {
           },
         },
         required: ['name', 'fields'],
+        additionalProperties: false,
+      },
+    },
+    events: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          params: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name:    { type: 'string', minLength: 1 },
+                type:    { type: 'string', minLength: 1 },
+                indexed: { type: 'boolean' },
+              },
+              required: ['name', 'type'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['name', 'params'],
         additionalProperties: false,
       },
     },
