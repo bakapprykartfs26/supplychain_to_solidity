@@ -21,7 +21,7 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
         <span class="count">{{ (definition.variables ?? []).length }}</span>
       </div>
 
-      @for (v of definition.variables ?? []; track v.name; let i = $index) {
+      @for (v of definition.variables ?? []; track i; let i = $index) {
         <div class="var-card">
           <div class="var-row-top">
             <mat-form-field appearance="fill" class="var-type">

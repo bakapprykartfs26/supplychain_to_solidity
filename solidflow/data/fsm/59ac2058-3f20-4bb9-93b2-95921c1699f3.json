@@ -39,5 +39,12 @@
   ],
   "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
   "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-09T12:55:35.359Z"
+  "updatedAt": "2026-04-14T18:45:41.545Z",
+  "variables": [
+    {
+      "name": "a",
+      "type": "uint256",
+      "visibility": "public"
+    }
+  ]
 }
