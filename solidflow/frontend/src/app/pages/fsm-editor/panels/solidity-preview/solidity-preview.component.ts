@@ -67,6 +67,15 @@ function generateStatements(stmts: FsmStatement[], indent: string): string[] {
             }
           </div>
         }
+
+        @if (hasManualTransitionCode()) {
+          <div class="status-row warning">
+            <mat-icon>warning_amber</mat-icon>
+            <span>
+              Security warning: this contract contains manually added transition statements and may be prone to security flaws.
+            </span>
+          </div>
+        }
       </div>
       <pre class="source-code">{{ source() }}</pre>
     </div>
@@ -79,6 +88,7 @@ function generateStatements(stmts: FsmStatement[], indent: string): string[] {
     .status-row { display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; font-size: 0.75rem; font-weight: 600; }
     .status-row mat-icon { font-size: 14px; width: 14px; height: 14px; }
     .success { color: var(--sf-success); background: var(--sf-success-dim); }
+    .warning { color: #f59e0b; background: rgba(245, 158, 11, 0.12); }
     .error { color: var(--sf-error); background: var(--sf-error-dim); }
     .error-list { background: var(--sf-error-dim); border-top: 1px solid rgba(248,113,113,0.2); padding: 0.375rem 0.875rem 0.5rem; max-height: 80px; overflow-y: auto; }
     .error-line { font-family: var(--sf-mono); font-size: 0.72rem; color: var(--sf-error); margin-bottom: 0.2rem; line-height: 1.4; }
@@ -94,6 +104,8 @@ export class SolidityPreviewComponent implements OnChanges {
   readonly source = signal('');
   readonly result = signal<CompileResult | null>(null);
   readonly compiling = signal(false);
+
+  readonly hasManualTransitionCode = signal(false);
 
   constructor() {
     this.change$
@@ -112,6 +124,13 @@ export class SolidityPreviewComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['definition'] && this.definition) {
+      this.hasManualTransitionCode.set(
+        this.definition.transitions.some((t) =>
+          (t.statements?.length ?? 0) > 0 ||
+          !!t.rawStatements?.trim()
+        )
+      );
+
       this.generateSource();
       this.change$.next(this.definition);
     }
