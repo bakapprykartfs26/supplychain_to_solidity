@@ -59,6 +59,7 @@ export interface FsmPlugins {
   transitionCounter?: boolean;
   timedTransitions?: boolean;
   event?: boolean;
+  transitionPause?: boolean;
 }
 
 export interface FsmDefinition {

@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type {
-  FsmGuard, FsmGuardConfig, GuardOperator,
+  FsmGuard, FsmGuardConfig, GuardOperator, FsmPlugins,
   AccessControlGuard, InputValidationGuard, StatePreconditionGuard,
   PostconditionGuard, EventEmissionGuard, ReturnValueGuard,
   DeadlineGuard, TimeLockGuard, CooldownGuard, WindowGuard,
@@ -174,7 +174,7 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                   </mat-form-field>
                 }
                 @if (entry.guard.type === 'pause') {
-                  <p class="no-fields">Adds <code>whenNotPaused</code> modifier — no config needed.</p>
+                  <p class="no-fields">Adds a per-transition pause check — no config needed.</p>
                 }
                 @if (entry.guard.type === 'postcondition') {
                   <mat-form-field appearance="fill" class="full-width">
@@ -335,6 +335,7 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
   `],
 })
 export class GuardSelectorComponent {
+  @Input() enabledPlugins?: FsmPlugins;
   @Input() guardConfig?: FsmGuardConfig;
   @Input() states: string[] = [];
   @Output() guardConfigChange = new EventEmitter<FsmGuardConfig | undefined>();
@@ -363,7 +364,11 @@ export class GuardSelectorComponent {
   }
 
   guardsByCategory(cat: string): GuardMeta[] {
-    return GUARD_CATALOG.filter((g) => g.category === cat);
+    return GUARD_CATALOG.filter((g) => {
+      if (g.category !== cat) return false;
+      if (g.type === 'pause' && !this.enabledPlugins?.transitionPause) return false;
+      return true;
+    });
   }
 
   categoryColor(cat: string): string {
@@ -387,6 +392,10 @@ export class GuardSelectorComponent {
   }
 
   toggleGuard(type: FsmGuard['type']): void {
+    if (type === 'pause' && !this.enabledPlugins?.transitionPause) {
+      return;
+    }
+    
     if (this.isAdded(type)) {
       const guards = this.activeGuards.filter((e) => e.guard.type !== type);
       this.emit(guards);

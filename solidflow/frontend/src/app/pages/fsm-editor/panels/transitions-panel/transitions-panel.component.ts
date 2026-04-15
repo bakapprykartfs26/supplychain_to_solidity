@@ -68,6 +68,7 @@ import { GuardSelectorComponent } from './guard-selector.component';
               <app-guard-selector
                 [guardConfig]="t.guardConfig"
                 [states]="definition.states"
+                [enabledPlugins]="definition.plugins"
                 (guardConfigChange)="patchTransition(i, { guardConfig: $any($event) })"
               />
               <div class="stmt-section">
