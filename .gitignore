@@ -1,32 +1,64 @@
 # Local Nx cache 
-.nx/cache
-.nx/workspace-data
+solidflow/.nx/cache
+solidflow/.nx/workspace-data
 
 # Angular specific
-/dist/
-/out-tsc/
-/tmp/
-/coverage/
-/e2e/test-output/
-/.angular/
-.angular/
+/solidflow/dist/
+/solidflow/out-tsc/
+/solidflow/tmp/
+/solidflow/coverage/
+/solidflow/e2e/test-output/
+/solidflow/.angular/
+solidflow/.angular/
 
 # Node modules and dependency files
-/node_modules/
-/package-lock.json
-/yarn.lock
+/solidflow/node_modules/
+/solidflow/package-lock.json
+/solidflow/yarn.lock
+
+# IDEs and editors
+/solidflow/.idea
+solidflow/.project
+solidflow/.classpath
+solidflow/.c9/
+solidflow/*.launch
+solidflow/.settings/
+solidflow/*.sublime-workspace
+solidflow/CLAUDE.md
+CLAUDE.md
+
+# IDE - VSCode
+solidflow/.vscode/*
+!solidflow/.vscode/settings.json
+!solidflow/.vscode/tasks.json
+!solidflow/.vscode/launch.json
+!solidflow/.vscode/extensions.json
 
 # Environment files
-/.env
+/solidflow/.env
+
+# misc
+/solidflow/.sass-cache
+/solidflow/connect.lock
+/solidflow/coverage
+/solidflow/libpeerconnection.log
+solidflow/npm-debug.log
+solidflow/yarn-error.log
+solidflow/testem.log
+/solidflow/typings
 
 # Angular CLI and build artefacts
-/.angular-cli.json
-/.ng/
+/solidflow/.angular-cli.json
+/solidflow/.ng/
 
 # TypeScript cache
 *.tsbuildinfo
 
 # Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+solidflow/npm-debug.log*
+solidflow/yarn-debug.log*
+solidflow/yarn-error.log*
+
+# System Files
+solidflow/.DS_Store
+solidflow/Thumbs.db
