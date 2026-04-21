@@ -141,6 +141,7 @@ export const FSM_JSON_SCHEMA = {
         transitionCounter: { type: 'boolean' },
         timedTransitions: { type: 'boolean' },
         event: { type: 'boolean' },
+        transitionPause: { type: 'boolean' },
       },
       additionalProperties: false,
     },

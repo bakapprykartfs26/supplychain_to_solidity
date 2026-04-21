@@ -67,6 +67,15 @@ function generateStatements(stmts: FsmStatement[], indent: string): string[] {
             }
           </div>
         }
+
+        @if (hasManualTransitionCode()) {
+          <div class="status-row warning">
+            <mat-icon>warning_amber</mat-icon>
+            <span>
+              Security warning: this contract contains manually added transition statements and may be prone to security flaws.
+            </span>
+          </div>
+        }
       </div>
       <pre class="source-code">{{ source() }}</pre>
     </div>
@@ -79,6 +88,7 @@ function generateStatements(stmts: FsmStatement[], indent: string): string[] {
     .status-row { display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; font-size: 0.75rem; font-weight: 600; }
     .status-row mat-icon { font-size: 14px; width: 14px; height: 14px; }
     .success { color: var(--sf-success); background: var(--sf-success-dim); }
+    .warning { color: #f59e0b; background: rgba(245, 158, 11, 0.12); }
     .error { color: var(--sf-error); background: var(--sf-error-dim); }
     .error-list { background: var(--sf-error-dim); border-top: 1px solid rgba(248,113,113,0.2); padding: 0.375rem 0.875rem 0.5rem; max-height: 80px; overflow-y: auto; }
     .error-line { font-family: var(--sf-mono); font-size: 0.72rem; color: var(--sf-error); margin-bottom: 0.2rem; line-height: 1.4; }
@@ -94,6 +104,8 @@ export class SolidityPreviewComponent implements OnChanges {
   readonly source = signal('');
   readonly result = signal<CompileResult | null>(null);
   readonly compiling = signal(false);
+
+  readonly hasManualTransitionCode = signal(false);
 
   constructor() {
     this.change$
@@ -112,6 +124,13 @@ export class SolidityPreviewComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['definition'] && this.definition) {
+      this.hasManualTransitionCode.set(
+        this.definition.transitions.some((t) =>
+          (t.statements?.length ?? 0) > 0 ||
+          !!t.rawStatements?.trim()
+        )
+      );
+
       this.generateSource();
       this.change$.next(this.definition);
     }
@@ -209,7 +228,6 @@ export class SolidityPreviewComponent implements OnChanges {
     );
 
     if (guardTypes.has('access-control') && !def.plugins?.accessControl) {
-      // Collect all unique roles used across transitions
       const roles = new Set(
         def.transitions.flatMap(t =>
           t.guardConfig?.guards
@@ -228,10 +246,36 @@ export class SolidityPreviewComponent implements OnChanges {
       lines.push('    }');
       lines.push('');
     }
-    if (guardTypes.has('pause')) {
-      lines.push('    bool public paused;');
+
+    const usesTransitionPause =
+      !!def.plugins?.transitionPause &&
+      def.transitions.some((t) => this.hasPauseGuard(t));
+
+    if (usesTransitionPause) {
+      lines.push(`    bool[${def.transitions.length}] public paused;`);
+      lines.push('');
+
+      if (!def.plugins?.accessControl) {
+        lines.push('    address public owner;');
+        lines.push('');
+        lines.push('    modifier onlyOwner() {');
+        lines.push('        require(msg.sender == owner, "Not owner");');
+        lines.push('        _;');
+        lines.push('    }');
+        lines.push('');
+        lines.push('    constructor() {');
+        lines.push('        owner = msg.sender;');
+        lines.push('    }');
+        lines.push('');
+      }
+
+      lines.push('    function setTransitionPaused(uint256 transitionIndex, bool value) public onlyOwner {');
+      lines.push(`        require(transitionIndex < ${def.transitions.length}, "Invalid transition index");`);
+      lines.push('        paused[transitionIndex] = value;');
+      lines.push('    }');
       lines.push('');
     }
+
     if (guardTypes.has('reentrancy') && !def.plugins?.locking) {
       lines.push('    bool private _locked;');
       lines.push('');
@@ -254,7 +298,7 @@ export class SolidityPreviewComponent implements OnChanges {
     if ((def.variables ?? []).length > 0) lines.push('');
 
     // Transition functions
-    for (const t of def.transitions) {
+    for (const [transitionIndex, t] of def.transitions.entries()) {
       const fnName = this.toIdentifier(t.name);
       const fromState = `State.${this.toIdentifier(t.from)}`;
       const toState = `State.${this.toIdentifier(t.to)}`;
@@ -263,7 +307,6 @@ export class SolidityPreviewComponent implements OnChanges {
       if (def.plugins?.accessControl) modifiers.push('onlyOwner');
       const modStr = modifiers.length ? ' ' + modifiers.join(' ') : '';
 
-      // Inside the transition functions loop, replace the function signature line:
       const needsPayable = t.guardConfig?.guards?.some(g =>
         g.guard.type === 'input-validation' &&
         (g.guard as import('@solidflow/shared').InputValidationGuard).expression.includes('msg.value')
@@ -272,19 +315,24 @@ export class SolidityPreviewComponent implements OnChanges {
       const visibility = needsPayable ? 'public payable' : 'public';
 
       lines.push(`    function ${fnName}() ${visibility}${modStr} {`);
-      
       lines.push(`        require(currentState == ${fromState}, "Invalid state");`);
 
-      // Structured guard conditions
-      if (t.guardConfig?.guards?.length) {
-        t.guardConfig.guards.forEach((entry, i) => {
+      if (def.plugins?.transitionPause && this.hasPauseGuard(t)) {
+        lines.push(`        require(!paused[${transitionIndex}], "Transition paused");`);
+      }
+
+      const nonPauseGuards = (t.guardConfig?.guards ?? []).filter(
+        (entry) => entry.guard.type !== 'pause'
+      );
+
+      if (nonPauseGuards.length) {
+        nonPauseGuards.forEach((entry, i) => {
           const expr = this.guardToExpression(entry.guard);
-          const op = i < t.guardConfig!.guards.length - 1 ? ` // ${entry.operator}` : '';
+          const op = i < nonPauseGuards.length - 1 ? ` // ${entry.operator}` : '';
           lines.push(`        require(${expr}, "${entry.guard.type} check failed");${op}`);
         });
       }
 
-      // Legacy string guard (backward compat)
       if (t.guard) {
         lines.push(`        require(${t.guard}, "Guard condition failed");`);
       }
@@ -326,12 +374,16 @@ export class SolidityPreviewComponent implements OnChanges {
     this.source.set(lines.join('\n'));
   }
 
+  private hasPauseGuard(t: FsmDefinition['transitions'][number]): boolean {
+    return !!t.guardConfig?.guards?.some((entry) => entry.guard.type === 'pause');
+  }
+
   private guardToExpression(guard: import('@solidflow/shared').FsmGuard): string {
     switch (guard.type) {
       case 'access-control':     return `msg.sender == ${guard.role === 'owner' ? 'owner' : guard.role}`;
       case 'input-validation':   return guard.expression;
       case 'state-precondition': return `currentState == State.${guard.state}`;
-      case 'pause':              return `!paused`;
+      case 'pause':              return `true`;
       case 'postcondition':      return guard.expression;
       case 'event-emission':     return `true /* emit ${guard.eventName} */`;
       case 'return-value':       return guard.expression;

@@ -18,6 +18,7 @@ const PLUGINS: PluginOption[] = [
   { key: 'transitionCounter', label: 'Transition Counter',  description: 'Tracks total number of transitions executed.',              icon: 'tag' },
   { key: 'timedTransitions',  label: 'Timed Transitions',   description: 'Records block.timestamp of each transition.',              icon: 'schedule' },
   { key: 'event',             label: 'StateChanged Event',  description: 'Emits a StateChanged event on every transition.',           icon: 'bolt' },
+  { key: 'transitionPause',   label: 'Transition Pause',    description: 'Allows individual transitions to be paused by the contract owner.', icon: 'pause_circle' },
 ];
 
 @Component({
@@ -88,6 +89,21 @@ export class PluginsPanelComponent {
 
   toggle(key: keyof FsmPlugins, value: boolean): void {
     const plugins: FsmPlugins = { ...(this.definition.plugins ?? {}), [key]: value };
-    this.definitionChange.emit({ ...this.definition, plugins });
+
+    let transitions = this.definition.transitions;
+
+    if (key === 'transitionPause' && !value) {
+      transitions = this.definition.transitions.map((t) => {
+        const existingGuards = t.guardConfig?.guards ?? [];
+        const filteredGuards = existingGuards.filter((entry) => entry.guard.type !== 'pause');
+
+        return {
+          ...t,
+          guardConfig: filteredGuards.length ? { guards: filteredGuards } : undefined,
+        };
+      });
+    }
+
+    this.definitionChange.emit({ ...this.definition, plugins, transitions });
   }
 }
