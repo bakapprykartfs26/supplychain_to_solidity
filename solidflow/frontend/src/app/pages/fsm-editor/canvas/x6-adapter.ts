@@ -186,15 +186,17 @@ export function definitionToGraph(
         label: state,
         attrs: {
           body: {
-            fill: state === def.initialState ? '#0a3a58' : '#122336',
-            stroke: state === def.initialState ? '#29b6f6' : '#1a3350',
-            rx: 6,
-            ry: 6,
+            fill: state === def.initialState ? '#ede8ff' : '#ffffff',
+            stroke: state === def.initialState ? '#7c5cfc' : 'rgba(0,0,0,0.13)',
+            strokeWidth: state === def.initialState ? 2 : 1.5,
+            rx: 10,
+            ry: 10,
           },
           label: {
-            fill: state === def.initialState ? '#29b6f6' : '#d8eaf8',
-            fontSize: 13,
-            fontFamily: 'JetBrains Mono, monospace',
+            fill: state === def.initialState ? '#7c5cfc' : '#0f0e17',
+            fontSize: 12,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 700,
           },
         },
       });
@@ -206,11 +208,12 @@ export function definitionToGraph(
       const node = graph.getCellById(state);
       node?.setAttrs({
         body: {
-          fill: state === def.initialState ? '#0a3a58' : '#122336',
-          stroke: state === def.initialState ? '#29b6f6' : '#1a3350',
+          fill: state === def.initialState ? '#ede8ff' : '#ffffff',
+          stroke: state === def.initialState ? '#7c5cfc' : 'rgba(0,0,0,0.13)',
+          strokeWidth: state === def.initialState ? 2 : 1.5,
         },
         label: {
-          fill: state === def.initialState ? '#29b6f6' : '#d8eaf8',
+          fill: state === def.initialState ? '#7c5cfc' : '#0f0e17',
         },
       });
     }
@@ -241,8 +244,8 @@ export function definitionToGraph(
           ? { name: 'loop', args: getSelfLoopRouterArgs(t, def.transitions) }
           : { name: 'normal' },
         attrs: {
-          line: { stroke: '#29b6f6', targetMarker: { name: 'block', size: 8 } },
-          label: { fill: '#5a7fa0', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' },
+          line: { stroke: '#7c5cfc', targetMarker: { name: 'block', size: 8 } },
+          label: { fill: '#6b6b85', fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif" },
         },
       });
     } else {
