@@ -1,0 +1,63 @@
+# Dependencies
+node_modules
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist
+out-tsc
+tmp
+coverage
+e2e/test-output
+
+# Angular cache
+.angular/
+
+# Nx cache
+.nx/cache
+.nx/workspace-data
+
+# Environment files
+.env
+
+# IDEs and editors
+.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Angular CLI
+.angular-cli.json
+.ng/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# misc
+.sass-cache
+connect.lock
+libpeerconnection.log
+testem.log
+typings
+
+# Claude AI context file
+CLAUDE.md
