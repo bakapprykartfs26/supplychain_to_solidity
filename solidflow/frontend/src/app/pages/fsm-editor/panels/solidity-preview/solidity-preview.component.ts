@@ -307,14 +307,10 @@ export class SolidityPreviewComponent implements OnChanges {
       if (def.plugins?.accessControl) modifiers.push('onlyOwner');
       const modStr = modifiers.length ? ' ' + modifiers.join(' ') : '';
 
-      const needsPayable = t.guardConfig?.guards?.some(g =>
-        g.guard.type === 'input-validation' &&
-        (g.guard as import('@solidflow/shared').InputValidationGuard).expression.includes('msg.value')
-      ) || t.guard?.includes('msg.value');
+      const payableStr = t.payable ? ' payable' : '';
 
-      const visibility = needsPayable ? 'public payable' : 'public';
-
-      lines.push(`    function ${fnName}() ${visibility}${modStr} {`);
+      lines.push(`    function ${fnName}() public${payableStr}${modStr} {`);
+      
       lines.push(`        require(currentState == ${fromState}, "Invalid state");`);
 
       if (def.plugins?.transitionPause && this.hasPauseGuard(t)) {

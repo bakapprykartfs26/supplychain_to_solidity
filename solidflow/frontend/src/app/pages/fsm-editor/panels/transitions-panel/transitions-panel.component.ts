@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
 import { StatementListComponent } from './statement-list.component';
@@ -16,7 +17,7 @@ import { GuardSelectorComponent } from './guard-selector.component';
 @Component({
   selector: 'app-transitions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule, MatButtonToggleModule, StatementListComponent, GuardSelectorComponent],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule, MatButtonToggleModule, MatSlideToggleModule, StatementListComponent, GuardSelectorComponent],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -63,6 +64,14 @@ import { GuardSelectorComponent } from './guard-selector.component';
                     }
                   </mat-select>
                 </mat-form-field>
+              </div>
+
+              <div class="payable-row">
+                <mat-slide-toggle
+                  [checked]="t.payable ?? false"
+                  (change)="patchTransition(i, { payable: $event.checked })">
+                  Payable
+                </mat-slide-toggle>
               </div>
 
               <app-guard-selector
@@ -170,6 +179,7 @@ import { GuardSelectorComponent } from './guard-selector.component';
     .event-emit-section { display: flex; flex-direction: column; gap: 0.375rem; }
     .args-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sf-text-muted); }
     .mono-inline { font-family: var(--sf-mono); text-transform: none; letter-spacing: 0; }
+    .payable-row { display: flex; align-items: center; padding: 0.25rem 0; }
     .remove-btn { color: var(--sf-error) !important; width: 100%; margin-top: 0.25rem; }
     .add-btn { width: 100%; margin-top: 0.75rem; border-color: var(--sf-border) !important; color: var(--sf-text-muted) !important; border-style: dashed !important; }
     .add-btn:hover { border-color: var(--sf-primary) !important; color: var(--sf-primary) !important; }

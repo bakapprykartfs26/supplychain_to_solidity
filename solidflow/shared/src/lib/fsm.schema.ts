@@ -65,6 +65,7 @@ export const FSM_JSON_SCHEMA = {
               ],
             },
           },
+          payable: { type: 'boolean' },
           emitEvent: { oneOf: [{ type: 'boolean' }, { type: 'string' }] },
           emitEventArgs: { type: 'array', items: { type: 'string' } },
         },

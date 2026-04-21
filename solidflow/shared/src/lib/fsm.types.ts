@@ -32,6 +32,7 @@ export interface FsmTransition {
   name: string;
   from: string;
   to: string;
+  payable?: boolean;
   guard?: string;
   guardConfig?: FsmGuardConfig;
   statementsMode?: 'guided' | 'code';

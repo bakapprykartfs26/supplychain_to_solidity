@@ -110,7 +110,8 @@ export class SolidityGenService {
       if (def.plugins?.accessControl) modifiers.push('onlyOwner');
       const modStr = modifiers.length ? ' ' + modifiers.join(' ') : '';
 
-      lines.push(`    function ${fnName}() public${modStr} {`);
+      const payableStr = t.payable ? ' payable' : '';
+      lines.push(`    function ${fnName}() public${payableStr}${modStr} {`);
       lines.push(
         `        require(currentState == State.${this.toIdentifier(t.from)}, "Invalid state");`,
       );
