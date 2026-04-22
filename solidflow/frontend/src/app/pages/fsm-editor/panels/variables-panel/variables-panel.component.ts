@@ -83,7 +83,7 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
       </div>
 
       <mat-accordion>
-        @for (ct of definition.customTypes ?? []; track ct.name; let ci = $index) {
+        @for (ct of definition.customTypes ?? []; track ci; let ci = $index) {
           <mat-expansion-panel>
             <mat-expansion-panel-header>
               <mat-panel-title>
@@ -98,7 +98,7 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
                 <input matInput [ngModel]="ct.name" (ngModelChange)="patchType(ci, 'name', $event)" spellcheck="false" class="mono" />
               </mat-form-field>
 
-              @for (field of ct.fields; track field.name; let fi = $index) {
+              @for (field of ct.fields; track fi; let fi = $index) {
                 <div class="field-row">
                   <mat-form-field appearance="fill" class="field-type">
                     <mat-label>Type</mat-label>
