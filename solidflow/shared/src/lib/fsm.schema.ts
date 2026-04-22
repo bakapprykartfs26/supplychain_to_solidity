@@ -1,4 +1,3 @@
-// Plain AJV JSON schema for FsmDefinition — avoids strictNullChecks requirement of JSONSchemaType
 export const FSM_JSON_SCHEMA = {
   type: 'object',
   properties: {
@@ -20,6 +19,9 @@ export const FSM_JSON_SCHEMA = {
           from: { type: 'string', minLength: 1 },
           to: { type: 'string', minLength: 1 },
           guard: { type: 'string' },
+          guardConfig: { type: 'object' },
+          inputs: { type: 'array' },
+          payable: { type: 'boolean' },
           statementsMode: { type: 'string', enum: ['guided', 'code'] },
           rawStatements: { type: 'string' },
           statements: {
@@ -65,12 +67,11 @@ export const FSM_JSON_SCHEMA = {
               ],
             },
           },
-          payable: { type: 'boolean' },
           emitEvent: { oneOf: [{ type: 'boolean' }, { type: 'string' }] },
           emitEventArgs: { type: 'array', items: { type: 'string' } },
         },
         required: ['id', 'name', 'from', 'to'],
-        additionalProperties: false,
+        additionalProperties: true,
       },
     },
     variables: {
@@ -82,6 +83,18 @@ export const FSM_JSON_SCHEMA = {
           type: { type: 'string', minLength: 1 },
           visibility: { type: 'string', enum: ['public', 'private', 'internal'] },
           initialValue: { type: 'string' },
+          isArray: { type: 'boolean' },
+          dimensions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                size: { type: 'string' },
+              },
+              required: ['size'],
+              additionalProperties: false,
+            },
+          },
         },
         required: ['name', 'type'],
         additionalProperties: false,
@@ -121,9 +134,19 @@ export const FSM_JSON_SCHEMA = {
             items: {
               type: 'object',
               properties: {
-                name:    { type: 'string', minLength: 1 },
-                type:    { type: 'string', minLength: 1 },
-                indexed: { type: 'boolean' },
+                name:       { type: 'string', minLength: 1 },
+                type:       { type: 'string', minLength: 1 },
+                indexed:    { type: 'boolean' },
+                isArray:    { type: 'boolean' },
+                dimensions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: { size: { type: 'string' } },
+                    required: ['size'],
+                    additionalProperties: false,
+                  },
+                },
               },
               required: ['name', 'type'],
               additionalProperties: false,
@@ -137,13 +160,23 @@ export const FSM_JSON_SCHEMA = {
     plugins: {
       type: 'object',
       properties: {
-        locking: { type: 'boolean' },
-        accessControl: { type: 'boolean' },
+        locking:           { type: 'boolean' },
+        accessControl:     { type: 'boolean' },
         transitionCounter: { type: 'boolean' },
-        timedTransitions: { type: 'boolean' },
-        event: { type: 'boolean' },
-        transitionPause: { type: 'boolean' },
+        timedTransitions:  { type: 'boolean' },
+        event:             { type: 'boolean' },
+        transitionPause:   { type: 'boolean' },
       },
+      additionalProperties: false,
+    },
+    constructorConfig: {
+      type: 'object',
+      properties: {
+        includedVariables: { type: 'array', items: { type: 'string' } },
+        includedArrays:    { type: 'array', items: { type: 'string' } },
+        includedStructs:   { type: 'array', items: { type: 'string' } },
+      },
+      required: ['includedVariables', 'includedArrays', 'includedStructs'],
       additionalProperties: false,
     },
     createdAt: { type: 'string' },

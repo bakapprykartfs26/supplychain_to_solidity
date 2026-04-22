@@ -1,15 +1,54 @@
 import { Type } from 'class-transformer';
 import {
-  IsArray,
-  IsBoolean,
-  IsIn,
-  IsOptional,
-  IsString,
-  MinLength,
-  ValidateNested,
+  IsArray, IsBoolean, IsIn, IsOptional, IsString, MinLength, ValidateNested,
 } from 'class-validator';
 import { FsmStatement } from '@solidflow/shared';
 
+// ── Array dimension ───────────────────────────────────────────────────────────
+export class ArrayDimensionDto {
+  @IsString()
+  size!: string;
+}
+
+// ── Guard ─────────────────────────────────────────────────────────────────────
+export class FsmGuardEntryDto {
+  @IsOptional()
+  guard?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsIn(['AND', 'OR'])
+  operator?: 'AND' | 'OR';
+}
+
+export class FsmGuardConfigDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FsmGuardEntryDto)
+  guards!: FsmGuardEntryDto[];
+}
+
+// ── Transition input ──────────────────────────────────────────────────────────
+export class FsmTransitionInputDto {
+  @IsString()
+  @MinLength(1)
+  name!: string;
+
+  @IsString()
+  @MinLength(1)
+  type!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isArray?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ArrayDimensionDto)
+  dimensions?: ArrayDimensionDto[];
+}
+
+// ── Transition ────────────────────────────────────────────────────────────────
 export class FsmTransitionDto {
   @IsString()
   id!: string;
@@ -27,8 +66,23 @@ export class FsmTransitionDto {
   to!: string;
 
   @IsOptional()
+  @IsBoolean()
+  payable?: boolean;
+
+  @IsOptional()
   @IsString()
   guard?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FsmGuardConfigDto)
+  guardConfig?: FsmGuardConfigDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FsmTransitionInputDto)
+  inputs?: FsmTransitionInputDto[];
 
   @IsOptional()
   @IsArray()
@@ -52,6 +106,7 @@ export class FsmTransitionDto {
   emitEventArgs?: string[];
 }
 
+// ── Variable ──────────────────────────────────────────────────────────────────
 export class FsmContractVariableDto {
   @IsString()
   @MinLength(1)
@@ -68,8 +123,19 @@ export class FsmContractVariableDto {
   @IsOptional()
   @IsString()
   initialValue?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isArray?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ArrayDimensionDto)
+  dimensions?: ArrayDimensionDto[];
 }
 
+// ── Custom type ───────────────────────────────────────────────────────────────
 export class FsmCustomTypeFieldDto {
   @IsString()
   @MinLength(1)
@@ -91,6 +157,7 @@ export class FsmCustomTypeDto {
   fields!: FsmCustomTypeFieldDto[];
 }
 
+// ── Event param ───────────────────────────────────────────────────────────────
 export class FsmEventParamDto {
   @IsString()
   @MinLength(1)
@@ -103,6 +170,16 @@ export class FsmEventParamDto {
   @IsOptional()
   @IsBoolean()
   indexed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isArray?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ArrayDimensionDto)
+  dimensions?: ArrayDimensionDto[];
 }
 
 export class FsmEventDto {
@@ -116,6 +193,7 @@ export class FsmEventDto {
   params!: FsmEventParamDto[];
 }
 
+// ── Plugins ───────────────────────────────────────────────────────────────────
 export class FsmPluginsDto {
   @IsOptional()
   @IsBoolean()
@@ -136,8 +214,28 @@ export class FsmPluginsDto {
   @IsOptional()
   @IsBoolean()
   event?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  transitionPause?: boolean;
 }
 
+// ── Constructor config ────────────────────────────────────────────────────────
+export class FsmConstructorConfigDto {
+  @IsArray()
+  @IsString({ each: true })
+  includedVariables!: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  includedArrays!: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  includedStructs!: string[];
+}
+
+// ── Create ────────────────────────────────────────────────────────────────────
 export class CreateFsmDto {
   @IsString()
   @MinLength(1)
@@ -178,4 +276,9 @@ export class CreateFsmDto {
   @ValidateNested()
   @Type(() => FsmPluginsDto)
   plugins?: FsmPluginsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FsmConstructorConfigDto)
+  constructorConfig?: FsmConstructorConfigDto;
 }

@@ -40,7 +40,7 @@ export class FsmService implements OnModuleInit {
   async create(dto: CreateFsmDto): Promise<FsmDefinition> {
     const now = new Date().toISOString();
     const fsm: FsmDefinition = {
-      ...dto,
+      ...(dto as unknown as FsmDefinition),
       id: randomUUID(),
       createdAt: now,
       updatedAt: now,
@@ -53,7 +53,7 @@ export class FsmService implements OnModuleInit {
     const existing = await this.findOne(id);
     const updated: FsmDefinition = {
       ...existing,
-      ...dto,
+      ...(dto as unknown as FsmDefinition),
       id,
       createdAt: existing.createdAt,
       updatedAt: new Date().toISOString(),
