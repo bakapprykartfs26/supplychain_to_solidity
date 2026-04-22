@@ -9,16 +9,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
+import type { FsmTransitionInput, FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
 import { StatementListComponent } from './statement-list.component';
 import { GuardSelectorComponent } from './guard-selector.component';
 import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
+import { ArrayEditorComponent } from '../../../../shared/array-editor.component';
 
 @Component({
   selector: 'app-transitions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule, MatButtonToggleModule, MatSlideToggleModule, StatementListComponent, GuardSelectorComponent],
+  imports: [ArrayEditorComponent, CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule, MatButtonToggleModule, MatSlideToggleModule, StatementListComponent, GuardSelectorComponent],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -86,15 +87,20 @@ import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
                   <div class="input-row">
                     <mat-form-field appearance="fill" class="input-type-field">
                       <mat-label>Type</mat-label>
-                      <mat-select
-                        [ngModel]="inp.type"
-                        (ngModelChange)="patchInput(i, j, { type: $event })"
-                      >
+                      <mat-select [ngModel]="inp.type" (ngModelChange)="patchInput(i, j, { type: $event })">
                         @for (typ of solidityTypes; track typ) {
                           <mat-option [value]="typ">{{ typ }}</mat-option>
                         }
                       </mat-select>
                     </mat-form-field>
+
+                    <app-array-editor
+                      [isArray]="inp.isArray ?? false"
+                      [dimensions]="inp.dimensions ?? []"
+                      (isArrayChange)="patchInput(i, j, { isArray: $any($event) })"
+                      (dimensionsChange)="patchInput(i, j, { dimensions: $any($event) })"
+                    />
+
                     <mat-form-field appearance="fill" class="input-name-field">
                       <mat-label>Name</mat-label>
                       <input matInput
@@ -283,7 +289,7 @@ export class TransitionsPanelComponent {
     this.patchTransition(transitionIndex, { inputs });
   }
 
-  patchInput(transitionIndex: number, inputIndex: number, partial: Partial<{ type: string; name: string }>): void {
+  patchInput(transitionIndex: number, inputIndex: number, partial: Partial<FsmTransitionInput>): void {
     const inputs = (this.definition.transitions[transitionIndex].inputs ?? []).map((inp, i) =>
       i === inputIndex ? { ...inp, ...partial } : inp
     );

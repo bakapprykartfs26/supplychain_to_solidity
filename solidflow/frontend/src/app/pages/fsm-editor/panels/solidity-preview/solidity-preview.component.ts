@@ -13,6 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import type { FsmDefinition, FsmForLoop, FsmIfStatement, FsmStatement } from '@solidflow/shared';
 import { FsmApiService, CompileResult } from '../../../../core/services/fsm-api.service';
+import { buildTypeString } from '../../../../shared/solidity-types';
 
 function generateStatements(stmts: FsmStatement[], indent: string): string[] {
   const lines: string[] = [];
@@ -215,7 +216,7 @@ export class SolidityPreviewComponent implements OnChanges {
     // Custom events
     for (const ev of def.events ?? []) {
       const params = ev.params
-        .map(p => `${p.type}${p.indexed ? ' indexed' : ''} ${p.name}`)
+        .map(p => `${buildTypeString(p.type, p.isArray ?? false, p.dimensions ?? [])}${p.indexed ? ' indexed' : ''} ${p.name}`)
         .join(', ');
       lines.push(`    event ${this.toIdentifier(ev.name)}(${params});`);
     }
@@ -293,7 +294,8 @@ export class SolidityPreviewComponent implements OnChanges {
     for (const v of def.variables ?? []) {
       const vis = v.visibility ?? 'public';
       const init = v.initialValue ? ` = ${v.initialValue}` : '';
-      lines.push(`    ${v.type} ${vis} ${v.name}${init};`);
+      const typeStr = buildTypeString(v.type, v.isArray ?? false, v.dimensions ?? []);
+      lines.push(`    ${typeStr} ${vis} ${v.name}${init};`);
     }
     if ((def.variables ?? []).length > 0) lines.push('');
 
@@ -311,7 +313,7 @@ export class SolidityPreviewComponent implements OnChanges {
 
       const inputParams = (t.inputs ?? [])
         .filter(inp => inp.name)
-        .map(inp => `${inp.type} ${inp.name}`)
+        .map(inp => `${buildTypeString(inp.type, inp.isArray ?? false, inp.dimensions ?? [])} ${inp.name}`)
         .join(', ');
 
       lines.push(`    function ${fnName}(${inputParams}) public${payableStr}${modStr} {`);

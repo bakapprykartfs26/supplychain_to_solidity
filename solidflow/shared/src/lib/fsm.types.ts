@@ -20,6 +20,8 @@ export interface FsmEventParam {
   name: string;
   type: string;
   indexed?: boolean;
+  isArray?: boolean;
+  dimensions?: ArrayDimension[];
 }
 
 export interface FsmEvent {
@@ -30,6 +32,8 @@ export interface FsmEvent {
 export interface FsmTransitionInput {
   name: string;
   type: string;
+  isArray?: boolean;
+  dimensions?: ArrayDimension[];
 }
 
 export interface FsmTransition {
@@ -48,11 +52,17 @@ export interface FsmTransition {
   emitEventArgs?: string[];
 }
 
+export interface ArrayDimension {
+  size: string; // empty = dynamic
+}
+
 export interface FsmContractVariable {
   name: string;
   type: string;
   visibility?: 'public' | 'private' | 'internal';
   initialValue?: string;
+  isArray?: boolean;
+  dimensions?: ArrayDimension[];
 }
 
 export interface FsmCustomType {

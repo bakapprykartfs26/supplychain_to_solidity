@@ -1,3 +1,5 @@
+import type { ArrayDimension } from '@solidflow/shared';
+
 export const SOLIDITY_TYPES = [
     'uint256', 'int256', 'string', 'bool', 'address', 'bytes',
     'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 
@@ -6,3 +8,9 @@ export const SOLIDITY_TYPES = [
 ] as const;
 
 export type SolidityType = typeof SOLIDITY_TYPES[number];
+
+export function buildTypeString(type: string, isArray: boolean, dimensions: ArrayDimension[]): string {
+  if (!isArray) return type;
+  if (!dimensions.length) return `${type}[]`;
+  return type + dimensions.map(d => d.size ? `[${d.size}]` : '[]').join('');
+}

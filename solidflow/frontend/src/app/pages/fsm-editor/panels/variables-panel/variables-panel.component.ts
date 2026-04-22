@@ -8,12 +8,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
+import { ArrayEditorComponent } from '../../../../shared/array-editor.component';
+import { buildTypeString } from '../../../../shared/solidity-types';
 import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
 
 @Component({
   selector: 'app-variables-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule],
+  imports: [ArrayEditorComponent, CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatExpansionModule],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -33,6 +35,13 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
                 }
               </mat-select>
             </mat-form-field>
+
+            <app-array-editor
+              [isArray]="v.isArray ?? false"
+              [dimensions]="v.dimensions ?? []"
+              (isArrayChange)="patch(i, { isArray: $any($event) })"
+              (dimensionsChange)="patch(i, { dimensions: $any($event) })"
+            />
 
             <mat-form-field appearance="fill" class="var-name">
               <mat-label>Name</mat-label>

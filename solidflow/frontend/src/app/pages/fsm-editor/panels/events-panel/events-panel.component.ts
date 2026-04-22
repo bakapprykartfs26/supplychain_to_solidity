@@ -9,12 +9,13 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
+import { ArrayEditorComponent } from '../../../../shared/array-editor.component';
 import type { FsmDefinition, FsmEvent, FsmEventParam } from '@solidflow/shared';
 
 @Component({
   selector: 'app-events-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatExpansionModule, MatCheckboxModule, MatSelectModule],
+  imports: [ArrayEditorComponent, CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatExpansionModule, MatCheckboxModule, MatSelectModule],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -57,6 +58,14 @@ import type { FsmDefinition, FsmEvent, FsmEventParam } from '@solidflow/shared';
                       }
                     </mat-select>
                   </mat-form-field>
+
+                  <app-array-editor
+                    [isArray]="p.isArray ?? false"
+                    [dimensions]="p.dimensions ?? []"
+                    (isArrayChange)="patchParam(i, pi, { isArray: $any($event) })"
+                    (dimensionsChange)="patchParam(i, pi, { dimensions: $any($event) })"
+                  />
+
                   <mat-form-field appearance="fill" class="param-name">
                     <mat-label>Name</mat-label>
                     <input matInput [ngModel]="p.name" (ngModelChange)="patchParam(i, pi, { name: $event })" spellcheck="false" class="mono" />

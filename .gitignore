@@ -3,3 +3,12 @@ CLAUDE.md
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Nx cache
+.nx/cache
+.nx/workspace-data
+
+# Dependencies
+node_modules
+
+package-lock.json
