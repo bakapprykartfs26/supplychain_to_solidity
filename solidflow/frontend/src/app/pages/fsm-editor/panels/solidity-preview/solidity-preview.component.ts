@@ -309,7 +309,12 @@ export class SolidityPreviewComponent implements OnChanges {
 
       const payableStr = t.payable ? ' payable' : '';
 
-      lines.push(`    function ${fnName}() public${payableStr}${modStr} {`);
+      const inputParams = (t.inputs ?? [])
+        .filter(inp => inp.name)
+        .map(inp => `${inp.type} ${inp.name}`)
+        .join(', ');
+
+      lines.push(`    function ${fnName}(${inputParams}) public${payableStr}${modStr} {`);
       
       lines.push(`        require(currentState == ${fromState}, "Invalid state");`);
 

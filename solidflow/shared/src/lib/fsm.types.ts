@@ -27,6 +27,11 @@ export interface FsmEvent {
   params: FsmEventParam[];
 }
 
+export interface FsmTransitionInput {
+  name: string;
+  type: string;
+}
+
 export interface FsmTransition {
   id: string;
   name: string;
@@ -35,6 +40,7 @@ export interface FsmTransition {
   payable?: boolean;
   guard?: string;
   guardConfig?: FsmGuardConfig;
+  inputs?: FsmTransitionInput[];
   statementsMode?: 'guided' | 'code';
   statements?: FsmStatement[];
   rawStatements?: string;

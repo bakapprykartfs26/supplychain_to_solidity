@@ -74,6 +74,42 @@ import { GuardSelectorComponent } from './guard-selector.component';
                 </mat-slide-toggle>
               </div>
 
+              <div class="inputs-section">
+                <div class="inputs-header">
+                  <span class="stmt-label">Input Parameters</span>
+                  <button mat-icon-button class="add-input-btn" (click)="addInput(i)" matTooltip="Add input parameter">
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </div>
+                @for (inp of t.inputs ?? []; track j; let j = $index) {
+                  <div class="input-row">
+                    <mat-form-field appearance="fill" class="input-type-field">
+                      <mat-label>Type</mat-label>
+                      <mat-select
+                        [ngModel]="inp.type"
+                        (ngModelChange)="patchInput(i, j, { type: $event })"
+                      >
+                        @for (typ of solidityTypes; track typ) {
+                          <mat-option [value]="typ">{{ typ }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="fill" class="input-name-field">
+                      <mat-label>Name</mat-label>
+                      <input matInput
+                        [ngModel]="inp.name"
+                        (ngModelChange)="patchInput(i, j, { name: $event })"
+                        spellcheck="false"
+                        class="mono-input"
+                        placeholder="paramName" />
+                    </mat-form-field>
+                    <button mat-icon-button class="remove-input-btn" (click)="removeInput(i, j)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+
               <app-guard-selector
                 [guardConfig]="t.guardConfig"
                 [states]="definition.states"
@@ -193,6 +229,15 @@ import { GuardSelectorComponent } from './guard-selector.component';
     .mode-toggle ::ng-deep .mat-button-toggle mat-icon { font-size: 14px; width: 14px; height: 14px; line-height: 14px; }
     .raw-code-editor { width: 100%; min-height: 120px; resize: vertical; background: var(--sf-elevated); border: 1px solid var(--sf-border); border-radius: var(--sf-radius); padding: 0.5rem 0.625rem; font-family: var(--sf-mono); font-size: 0.82rem; color: var(--sf-text); outline: none; transition: border-color 0.15s; box-sizing: border-box; }
     .raw-code-editor:focus { border-color: var(--sf-primary); }
+    .inputs-section { display: flex; flex-direction: column; gap: 0.375rem; }
+    .inputs-header { display: flex; align-items: center; justify-content: space-between; }
+    .add-input-btn { width: 28px; height: 28px; color: var(--sf-primary) !important; }
+    .add-input-btn mat-icon { font-size: 18px; }
+    .input-row { display: flex; align-items: center; gap: 0.375rem; }
+    .input-type-field { width: 130px; flex-shrink: 0; }
+    .input-name-field { flex: 1; }
+    .remove-input-btn { width: 28px; height: 28px; color: var(--sf-error) !important; flex-shrink: 0; }
+    .remove-input-btn mat-icon { font-size: 16px; }
   `],
 })
 export class TransitionsPanelComponent {
@@ -228,6 +273,30 @@ export class TransitionsPanelComponent {
     const args = [...(this.definition.transitions[ti].emitEventArgs ?? [])];
     args[pi] = value;
     this.patchTransition(ti, { emitEventArgs: args });
+  }
+
+  readonly solidityTypes = [
+    'uint256', 'int256', 'string', 'bool', 'address', 'bytes',
+    'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 
+    'int8', 'int16', 'int32', 'int64', 'int128', 
+    'bytes8', 'bytes16', 'bytes32',
+  ];
+
+  addInput(transitionIndex: number): void {
+    const inputs = [...(this.definition.transitions[transitionIndex].inputs ?? []), { type: 'uint256', name: '' }];
+    this.patchTransition(transitionIndex, { inputs });
+  }
+
+  patchInput(transitionIndex: number, inputIndex: number, partial: Partial<{ type: string; name: string }>): void {
+    const inputs = (this.definition.transitions[transitionIndex].inputs ?? []).map((inp, i) =>
+      i === inputIndex ? { ...inp, ...partial } : inp
+    );
+    this.patchTransition(transitionIndex, { inputs });
+  }
+
+  removeInput(transitionIndex: number, inputIndex: number): void {
+    const inputs = (this.definition.transitions[transitionIndex].inputs ?? []).filter((_, i) => i !== inputIndex);
+    this.patchTransition(transitionIndex, { inputs: inputs.length ? inputs : undefined });
   }
 
 }
