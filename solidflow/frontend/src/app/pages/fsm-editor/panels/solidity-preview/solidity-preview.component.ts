@@ -299,6 +299,45 @@ export class SolidityPreviewComponent implements OnChanges {
     }
     if ((def.variables ?? []).length > 0) lines.push('');
 
+    // createdAt timestamp variable
+    lines.push('    uint256 public createdAt;');
+    lines.push('');
+
+    // Constructor
+    const cfg = def.constructorConfig;
+    const ctorParams: string[] = [];
+    const ctorAssigns: string[] = ['        createdAt = block.timestamp;'];
+
+    for (const name of cfg?.includedVariables ?? []) {
+      const v = (def.variables ?? []).find(x => x.name === name && !x.isArray);
+      if (v) {
+        ctorParams.push(`${v.type} _${v.name}`);
+        ctorAssigns.push(`        ${v.name} = _${v.name};`);
+      }
+    }
+    for (const name of cfg?.includedArrays ?? []) {
+      const v = (def.variables ?? []).find(x => x.name === name && x.isArray);
+      if (v) {
+        ctorParams.push(`${v.type}[] memory _${v.name}`);
+        ctorAssigns.push(`        ${v.name} = _${v.name};`);
+      }
+    }
+    for (const name of cfg?.includedStructs ?? []) {
+      const ct = (def.customTypes ?? []).find(x => x.name === name);
+      if (ct) {
+        ctorParams.push(`${ct.name} memory _${ct.name.toLowerCase()}`);
+        ctorAssigns.push(`        ${ct.name.toLowerCase()} = _${ct.name.toLowerCase()};`);
+      }
+    }
+
+    const paramStr = ctorParams.length
+      ? '\n        ' + ctorParams.join(',\n        ') + '\n    '
+      : '';
+    lines.push(`    constructor(${paramStr}) {`);
+    ctorAssigns.forEach(a => lines.push(a));
+    lines.push('    }');
+    lines.push('');
+
     // Transition functions
     for (const [transitionIndex, t] of def.transitions.entries()) {
       const fnName = this.toIdentifier(t.name);

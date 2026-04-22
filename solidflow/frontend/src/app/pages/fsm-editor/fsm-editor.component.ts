@@ -20,6 +20,7 @@ import { FsmApiService } from '../../core/services/fsm-api.service';
 import { FsmCanvasComponent } from './canvas/fsm-canvas.component';
 import { StatesPanelComponent } from './panels/states-panel/states-panel.component';
 import { TransitionsPanelComponent } from './panels/transitions-panel/transitions-panel.component';
+import { ConstructorPanelComponent } from './panels/constructor-panel/constructor-panel.component';
 import { VariablesPanelComponent } from './panels/variables-panel/variables-panel.component';
 import { PluginsPanelComponent } from './panels/plugins-panel/plugins-panel.component';
 import { EventsPanelComponent } from './panels/events-panel/events-panel.component';
@@ -37,10 +38,11 @@ const BLANK_DEFINITION: FsmDefinition = {
   transitions: [],
 };
 
-type TabId = 'states' | 'transitions' | 'variables' | 'events' | 'plugins';
+type TabId = 'states' | 'transitions' | 'constructor' | 'variables' | 'events' | 'plugins';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'states',      label: 'States' },
   { id: 'transitions', label: 'Transitions' },
+  { id: 'constructor', label: 'Constructor' },
   { id: 'variables',   label: 'Variables' },
   { id: 'events',      label: 'Events' },
   { id: 'plugins',     label: 'Plugins' },
@@ -52,7 +54,7 @@ const TABS: { id: TabId; label: string }[] = [
   imports: [
     CommonModule, FormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressBarModule,
-    FsmCanvasComponent, StatesPanelComponent, TransitionsPanelComponent,
+    FsmCanvasComponent, StatesPanelComponent, TransitionsPanelComponent, ConstructorPanelComponent,
     VariablesPanelComponent, PluginsPanelComponent, EventsPanelComponent, SolidityPreviewComponent,
   ],
   template: `
@@ -141,6 +143,9 @@ const TABS: { id: TabId; label: string }[] = [
               }
               @case ('transitions') {
                 <app-transitions-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              }
+              @case ('constructor') {
+                <app-constructor-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
               }
               @case ('variables') {
                 <app-variables-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />

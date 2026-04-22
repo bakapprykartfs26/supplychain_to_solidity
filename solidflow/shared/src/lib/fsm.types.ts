@@ -29,6 +29,17 @@ export interface FsmEvent {
   params: FsmEventParam[];
 }
 
+export interface FsmConstructorParam {
+  variableName: string; // references existing variable/array/struct name
+  include: boolean;
+}
+
+export interface FsmConstructorConfig {
+  includedVariables: string[]; // names of variables to include as params
+  includedArrays: string[];    // names of array variables to include
+  includedStructs: string[];   // names of struct variables to include
+}
+
 export interface FsmTransitionInput {
   name: string;
   type: string;
@@ -89,6 +100,7 @@ export interface FsmDefinition {
   customTypes?: FsmCustomType[];
   events?: FsmEvent[];
   plugins?: FsmPlugins;
+  constructorConfig?: FsmConstructorConfig;
   createdAt?: string;
   updatedAt?: string;
 }
