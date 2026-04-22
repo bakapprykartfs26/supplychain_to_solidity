@@ -31,21 +31,23 @@
               "expression": "msg.value == ticketPrice"
             },
             "operator": "AND",
-            "errorMessage": "asdf"
+            "errorMessage": "Incorrect ticket price"
           },
           {
             "guard": {
               "type": "input-validation",
               "expression": "secret != bytes32(0)"
             },
-            "operator": "AND"
+            "operator": "AND",
+            "errorMessage": "Invalid secret"
           },
           {
             "guard": {
               "type": "input-validation",
               "expression": "1==1"
             },
-            "operator": "AND"
+            "operator": "AND",
+            "errorMessage": "Only one ticket per player is allowed"
           }
         ]
       },
@@ -67,7 +69,8 @@
               "type": "input-validation",
               "expression": "block.timestamp > deadlineBuy"
             },
-            "operator": "AND"
+            "operator": "AND",
+            "errorMessage": "Buy stage deadline has not passed yet"
           }
         ]
       }
@@ -90,27 +93,56 @@
               "type": "input-validation",
               "expression": "1 == 1"
             },
-            "operator": "AND"
+            "operator": "AND",
+            "errorMessage": "No secret to reveal"
           },
           {
             "guard": {
               "type": "input-validation",
               "expression": "keccak256(abi.encode(secretNumber)) == bytes32(0)"
             },
-            "operator": "AND"
+            "operator": "AND",
+            "errorMessage": "Secret does not match commitment"
           }
         ]
-      }
+      },
+      "statements": [
+        "/// secrets[msg.sender] = bytes32(0);",
+        "players.push(msg.sender);",
+        "randomNumber = uint(keccak256(abi.encodePacked(randomNumber, secretNumber)));"
+      ]
     },
     {
       "id": "335468b6-c807-4eca-bbd5-ac3a58385204",
       "name": "evaluate",
       "from": "Reveal Stage",
       "to": "Buy Stage",
-      "emitEvent": "WinnerSelected",
-      "emitEventArgs": [
-        "players[0]",
-        "jackpot"
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "block.timestamp > deadlineReveal"
+            },
+            "operator": "AND",
+            "errorMessage": "Reveal stage deadline has not passed yet"
+          }
+        ]
+      },
+      "statements": [
+        {
+          "type": "if",
+          "condition": "players.length != 0",
+          "body": [
+            "uint numberOfPlayers = players.length;",
+            "uint winnerIndex = randomNumber % numberOfPlayers;",
+            "address winner = players[winnerIndex];",
+            "/// winners[winner] += jackpot;",
+            "emit WinnerSelected(winner, jackpot);",
+            "jackpot = 0;"
+          ],
+          "elseIfs": []
+        }
       ]
     },
     {
@@ -128,7 +160,7 @@
   ],
   "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
   "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-22T11:01:12.748Z",
+  "updatedAt": "2026-04-22T13:19:36.659Z",
   "variables": [
     {
       "name": "players",
@@ -149,17 +181,21 @@
     {
       "name": "revealStageDuration",
       "type": "uint256",
-      "visibility": "public"
+      "visibility": "public",
+      "isArray": false,
+      "dimensions": []
     },
     {
       "name": "deadlineBuy",
       "type": "uint256",
-      "visibility": "public"
+      "visibility": "public",
+      "initialValue": "block.timestamp + buyStageDuration"
     },
     {
       "name": "deadlineReveal",
       "type": "uint256",
-      "visibility": "public"
+      "visibility": "public",
+      "initialValue": "deadlineBuy + revealStageDuration"
     },
     {
       "name": "ticketPrice",
