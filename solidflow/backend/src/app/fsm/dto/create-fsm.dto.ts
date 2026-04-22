@@ -18,6 +18,10 @@ export class FsmGuardEntryDto {
   @IsOptional()
   @IsIn(['AND', 'OR'])
   operator?: 'AND' | 'OR';
+
+  @IsOptional()
+  @IsString()
+  errorMessage?: string;
 }
 
 export class FsmGuardConfigDto {

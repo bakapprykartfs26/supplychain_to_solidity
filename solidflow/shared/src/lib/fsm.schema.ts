@@ -19,7 +19,26 @@ export const FSM_JSON_SCHEMA = {
           from: { type: 'string', minLength: 1 },
           to: { type: 'string', minLength: 1 },
           guard: { type: 'string' },
-          guardConfig: { type: 'object' },
+          guardConfig: {
+            type: 'object',
+            properties: {
+              guards: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    guard:        { type: 'object' },
+                    operator:     { type: 'string', enum: ['AND', 'OR'] },
+                    errorMessage: { type: 'string' },
+                  },
+                  required: ['guard', 'operator'],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ['guards'],
+            additionalProperties: false,
+          },
           inputs: { type: 'array' },
           payable: { type: 'boolean' },
           statementsMode: { type: 'string', enum: ['guided', 'code'] },

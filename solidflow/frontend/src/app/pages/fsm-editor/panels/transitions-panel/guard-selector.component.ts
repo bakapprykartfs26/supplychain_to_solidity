@@ -287,6 +287,16 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                     </mat-form-field>
                   </div>
                 }
+                <mat-form-field appearance="fill" class="full-width">
+                  <mat-label>Error message</mat-label>
+                  <input
+                    matInput
+                    class="mono"
+                    [ngModel]="entry.errorMessage ?? ''"
+                    (ngModelChange)="setErrorMessage(i, $event)"
+                    placeholder="Guard condition failed"
+                  />
+                </mat-form-field>
               </div>
             </div>
           }
@@ -335,9 +345,9 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
   `],
 })
 export class GuardSelectorComponent {
-  @Input() enabledPlugins?: FsmPlugins;
   @Input() guardConfig?: FsmGuardConfig;
   @Input() states: string[] = [];
+  @Input() enabledPlugins?: FsmPlugins;
   @Output() guardConfigChange = new EventEmitter<FsmGuardConfig | undefined>();
 
   readonly categories = ['Entry', 'Exit', 'Temporal', 'Oracle'] as const;
@@ -400,13 +410,23 @@ export class GuardSelectorComponent {
       const guards = this.activeGuards.filter((e) => e.guard.type !== type);
       this.emit(guards);
     } else {
-      const guards = [...this.activeGuards, { guard: defaultGuard(type), operator: 'AND' as GuardOperator }];
+      const guards = [
+        ...this.activeGuards,
+        { guard: defaultGuard(type), operator: 'AND' as GuardOperator, errorMessage: '' }
+      ];
       this.emit(guards);
     }
   }
 
   setOperator(index: number, operator: GuardOperator): void {
     const guards = this.activeGuards.map((e, i) => i === index ? { ...e, operator } : e);
+    this.emit(guards);
+  }
+
+  setErrorMessage(index: number, errorMessage: string): void {
+    const guards = this.activeGuards.map((e, i) =>
+      i === index ? { ...e, errorMessage } : e
+    );
     this.emit(guards);
   }
 

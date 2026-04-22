@@ -139,5 +139,5 @@ export type FsmGuard =
   | SourceWhitelistGuard | FreshnessGuard | SanityBoundGuard;
 
 export interface FsmGuardConfig {
-  guards: Array<{ guard: FsmGuard; operator: GuardOperator }>;
+  guards: Array<{ guard: FsmGuard; operator: GuardOperator; errorMessage?: string }>;
 }

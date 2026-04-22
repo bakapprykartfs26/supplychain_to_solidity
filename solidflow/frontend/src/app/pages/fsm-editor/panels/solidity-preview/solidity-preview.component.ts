@@ -371,7 +371,8 @@ export class SolidityPreviewComponent implements OnChanges {
         nonPauseGuards.forEach((entry, i) => {
           const expr = this.guardToExpression(entry.guard);
           const op = i < nonPauseGuards.length - 1 ? ` // ${entry.operator}` : '';
-          lines.push(`        require(${expr}, "${entry.guard.type} check failed");${op}`);
+          const errMsg = entry.errorMessage?.trim() || `${entry.guard.type} check failed`;
+          lines.push(`        require(${expr}, "${errMsg}");${op}`);
         });
       }
 
