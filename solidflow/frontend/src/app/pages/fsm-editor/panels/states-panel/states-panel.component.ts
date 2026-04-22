@@ -169,7 +169,7 @@ import type { FsmDefinition } from '@solidflow/shared';
       border-radius: 0 0 var(--sf-radius) var(--sf-radius);
       overflow: hidden;
       z-index: 100;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
       animation: sf-drop 0.12s ease;
     }
     @keyframes sf-drop {

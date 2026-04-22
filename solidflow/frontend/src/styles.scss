@@ -1,57 +1,60 @@
 @use '@angular/material' as mat;
 
-// ── Circuit Noir Theme ──────────────────────────────────────────────────────
-// Deep navy darkness, electric-blue precision, amber warmth.
-// Typography: Syne (display) · Outfit (body) · JetBrains Mono (code)
+// ── Solidflow Light Theme ──────────────────────────────────────────────────
+// Clean light surface · Purple accent · Plus Jakarta Sans · JetBrains Mono
 // ───────────────────────────────────────────────────────────────────────────
 
 $sf-theme: mat.define-theme((
   color: (
-    theme-type: dark,
-    primary: mat.$cyan-palette,
+    theme-type: light,
+    primary: mat.$violet-palette,
     tertiary: mat.$orange-palette,
   ),
   typography: (
-    brand-family: 'Epilogue, sans-serif',
-    plain-family: 'Manrope, sans-serif',
+    brand-family: "'Plus Jakarta Sans', sans-serif",
+    plain-family: "'Plus Jakarta Sans', sans-serif",
   ),
   density: (scale: -1),
 ));
 
 html {
   @include mat.all-component-themes($sf-theme);
-  color-scheme: dark;
 }
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 :root {
-  --sf-bg:           #07111e;
-  --sf-surface:      #0d1d2e;
-  --sf-elevated:     #122336;
-  --sf-border:       #1a3350;
-  --sf-border-soft:  #112840;
+  --sf-bg:           #f5f4f8;
+  --sf-surface:      #ffffff;
+  --sf-elevated:     #f9f8fc;
+  --sf-border:       rgba(0,0,0,0.08);
+  --sf-border-soft:  rgba(0,0,0,0.05);
+  --sf-border-mid:   rgba(0,0,0,0.13);
 
-  --sf-primary:      #29b6f6;
-  --sf-primary-dim:  #0a3a58;
-  --sf-amber:        #ffab40;
-  --sf-amber-dim:    #3d2600;
+  --sf-primary:      #7c5cfc;
+  --sf-primary-dim:  #ede8ff;
+  --sf-amber:        #f59e0b;
+  --sf-amber-dim:    #fef3c7;
 
-  --sf-text:         #d8eaf8;
-  --sf-text-muted:   #5a7fa0;
-  --sf-text-dim:     #3a5a78;
+  --sf-text:         #0f0e17;
+  --sf-text-muted:   #6b6b85;
+  --sf-text-dim:     #b4b4c8;
 
-  --sf-success:      #4ade80;
-  --sf-success-dim:  #052810;
-  --sf-error:        #f87171;
-  --sf-error-dim:    #300a0a;
-  --sf-warn:         #fbbf24;
+  --sf-success:      #10b981;
+  --sf-success-dim:  #d1fae5;
+  --sf-error:        #ef4444;
+  --sf-error-dim:    #fee2e2;
+  --sf-warn:         #f59e0b;
 
   --sf-mono:  'JetBrains Mono', 'Courier New', monospace;
-  --sf-sans:  'Manrope', sans-serif;
-  --sf-brand: 'Epilogue', sans-serif;
+  --sf-sans:  'Plus Jakarta Sans', sans-serif;
+  --sf-brand: 'Plus Jakarta Sans', sans-serif;
 
-  --sf-radius:    6px;
-  --sf-radius-lg: 10px;
+  --sf-radius:    10px;
+  --sf-radius-lg: 14px;
+
+  --sf-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05);
+  --sf-shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+  --sf-shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
 }
 
 // ── Reset & base ─────────────────────────────────────────────────────────────
@@ -69,9 +72,9 @@ body {
 
 // ── Custom scrollbar ─────────────────────────────────────────────────────────
 ::-webkit-scrollbar              { width: 5px; height: 5px; }
-::-webkit-scrollbar-track        { background: var(--sf-bg); }
-::-webkit-scrollbar-thumb        { background: var(--sf-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover  { background: var(--sf-primary-dim); }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(0,0,0,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(0,0,0,0.2); }
 
 // ── Material component overrides ──────────────────────────────────────────────
 
@@ -79,6 +82,8 @@ body {
   font-family: var(--sf-brand) !important;
   background: var(--sf-surface) !important;
   border-bottom: 1px solid var(--sf-border) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.05) !important;
+  color: var(--sf-text) !important;
 }
 
 .mat-mdc-form-field {
@@ -86,7 +91,7 @@ body {
   --mdc-filled-text-field-focus-active-indicator-color:  var(--sf-primary);
   --mdc-filled-text-field-label-text-color:              var(--sf-text-muted);
   --mdc-filled-text-field-input-text-color:              var(--sf-text);
-  --mdc-filled-text-field-active-indicator-color:        var(--sf-border);
+  --mdc-filled-text-field-active-indicator-color:        var(--sf-border-mid);
 }
 
 .mat-mdc-tab-group {
@@ -99,41 +104,51 @@ body {
 .mat-mdc-tab-body-wrapper { background: var(--sf-surface); }
 
 .mat-mdc-card {
-  --mdc-elevated-card-container-color: var(--sf-elevated);
-  --mdc-outlined-card-container-color: var(--sf-elevated);
-  border: 1px solid var(--sf-border) !important;
+  --mdc-elevated-card-container-color: var(--sf-surface);
+  --mdc-outlined-card-container-color: var(--sf-surface);
+  border: 1.5px solid var(--sf-border) !important;
 }
 
 .mat-expansion-panel {
-  background: var(--sf-elevated) !important;
-  border: 1px solid var(--sf-border) !important;
+  background: var(--sf-surface) !important;
+  border: 1.5px solid var(--sf-border) !important;
   border-radius: var(--sf-radius) !important;
   box-shadow: none !important;
   margin-bottom: 0.5rem;
 }
-.mat-expansion-panel-header         { background: var(--sf-elevated) !important; }
-.mat-expansion-panel-header:hover   { background: var(--sf-surface) !important; }
+.mat-expansion-panel-header         { background: var(--sf-surface) !important; }
+.mat-expansion-panel-header:hover   { background: var(--sf-elevated) !important; }
 .mat-expansion-panel-header-title   { color: var(--sf-text) !important; }
 
 .mat-mdc-select-value   { color: var(--sf-text) !important; }
-.mat-mdc-option         { background: var(--sf-elevated) !important; color: var(--sf-text) !important; }
-.mat-mdc-option:hover   { background: var(--sf-surface) !important; }
-.mat-mdc-select-panel   { background: var(--sf-elevated) !important; border: 1px solid var(--sf-border) !important; }
+.mat-mdc-option         { background: var(--sf-surface) !important; color: var(--sf-text) !important; }
+.mat-mdc-option:hover   { background: var(--sf-elevated) !important; }
+.mat-mdc-option.mdc-list-item--selected { background: var(--sf-primary-dim) !important; }
+.mat-mdc-select-panel   { background: var(--sf-surface) !important; border: 1px solid var(--sf-border) !important; box-shadow: var(--sf-shadow-lg) !important; }
 
 .mat-mdc-slide-toggle {
-  --mdc-switch-selected-track-color:    var(--sf-primary);
-  --mdc-switch-selected-handle-color:   var(--sf-bg);
-  --mdc-switch-unselected-track-color:  var(--sf-border);
-  --mdc-switch-unselected-handle-color: var(--sf-text-muted);
+  --mdc-switch-selected-track-color:          var(--sf-primary);
+  --mdc-switch-selected-hover-track-color:    var(--sf-primary);
+  --mdc-switch-selected-pressed-track-color:  var(--sf-primary);
+  --mdc-switch-selected-handle-color:         white;
+  --mdc-switch-unselected-track-color:        var(--sf-border-mid);
+  --mdc-switch-unselected-handle-color:       var(--sf-text-dim);
+  --mdc-switch-label-text-color:              var(--sf-text);
+  --mat-switch-label-text-color:              var(--sf-text);
+}
+
+.mat-mdc-button-toggle-group {
+  --mat-standard-button-toggle-selected-state-background-color: var(--sf-primary-dim);
+  --mat-standard-button-toggle-selected-state-text-color: var(--sf-primary);
 }
 
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-flat-button.mat-primary {
   background: var(--sf-primary) !important;
-  color: var(--sf-bg) !important;
+  color: white !important;
   font-family: var(--sf-sans) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
 }
 
 .mat-mdc-progress-bar {
@@ -145,7 +160,6 @@ body {
 
 // ── Shared icon danger button (close / delete row) ────────────────────────
 .sf-icon-btn-danger {
-  // MDC icon-button: keep state-layer (ripple circle) same size as the button
   --mdc-icon-button-state-layer-size: 30px !important;
   width:  30px !important;
   height: 30px !important;
@@ -169,3 +183,8 @@ body {
     justify-content: center !important;
   }
 }
+
+// ── Animations ────────────────────────────────────────────────────────────────
+@keyframes sf-fade-in   { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: translateY(0); } }
+@keyframes sf-slide-up  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sf-spin      { from { transform: rotate(0deg); }                  to { transform: rotate(360deg); } }

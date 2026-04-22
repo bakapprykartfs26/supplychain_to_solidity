@@ -1,136 +1,308 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatRippleModule } from '@angular/material/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import type { FsmDefinition } from '@solidflow/shared';
 import { FsmApiService } from '../../core/services/fsm-api.service';
 
+const CARD_COLORS = ['#7c5cfc', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
+
 @Component({
   selector: 'app-fsm-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule, MatRippleModule, MatProgressBarModule],
+  imports: [CommonModule, FormsModule, RouterLink, MatButtonModule, MatIconModule, MatProgressBarModule],
   template: `
     <div class="shell">
-      <mat-toolbar class="topbar">
-        <span class="brand">
-          <span class="brand-mark">⬡</span>
-          <span class="brand-name">SOLIDFLOW</span>
-        </span>
-        <span class="spacer"></span>
-        <button mat-flat-button color="primary" routerLink="/editor/new" class="new-btn">
-          <mat-icon>add</mat-icon>
-          New Contract
+
+      <!-- Nav -->
+      <nav class="nav">
+        <div class="logo">
+          <div class="logo-mark">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2L13 5V11L8 14L3 11V5L8 2Z" fill="white" opacity="0.9"/>
+              <path d="M8 5L11 6.5V9.5L8 11L5 9.5V6.5L8 5Z" fill="white" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="logo-text">Solidflow</span>
+        </div>
+        <div class="nav-spacer"></div>
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input class="search-input" [(ngModel)]="searchQuery" placeholder="Search contracts…" />
+        </div>
+        <button class="new-btn" routerLink="/editor/new">
+          <span class="new-btn-plus">+</span> New Contract
         </button>
-      </mat-toolbar>
+      </nav>
 
       @if (loading()) {
         <mat-progress-bar mode="indeterminate" class="loader" />
       }
 
       <main class="content">
+        <!-- Hero -->
         <div class="hero">
-          <h1 class="hero-title">FSM Contracts</h1>
-          <p class="hero-sub">Finite state machines compiled to Solidity</p>
+          <h1 class="hero-title">Your Contracts</h1>
+          <p class="hero-sub">
+            {{ fsms().length }} contract{{ fsms().length !== 1 ? 's' : '' }} · Design finite state machines, export to Solidity
+          </p>
         </div>
 
+        <!-- Empty state -->
         @if (!loading() && fsms().length === 0) {
           <div class="empty">
-            <div class="empty-icon">⬡</div>
+            <div class="empty-icon">◎</div>
             <p class="empty-title">No contracts yet</p>
-            <p class="empty-sub">Create your first finite state machine to get started.</p>
-            <button mat-flat-button color="primary" routerLink="/editor/new">
-              <mat-icon>add</mat-icon>
-              Create Contract
-            </button>
+            <p class="empty-sub">Create your first contract to get started</p>
+            <button class="new-btn" routerLink="/editor/new">Create Contract</button>
           </div>
         }
 
-        @if (!loading() && fsms().length > 0) {
+        <!-- Grid -->
+        @if (!loading() && filtered().length > 0) {
           <div class="grid">
-            @for (fsm of fsms(); track fsm.id) {
-              <div class="card" matRipple [routerLink]="['/editor', fsm.id]">
-                <div class="card-accent"></div>
+            @for (fsm of filtered(); track fsm.id; let i = $index) {
+              <div class="card"
+                [style.--card-color]="getColor(i)"
+                (click)="navigate(fsm)"
+                (mouseenter)="hoveredId.set(fsm.id ?? null)"
+                (mouseleave)="hoveredId.set(null)"
+                [class.hovered]="hoveredId() === fsm.id">
+                <div class="card-bar"></div>
                 <div class="card-body">
-                  <div class="card-header">
-                    <span class="contract-icon">◈</span>
-                    <h2 class="contract-name">{{ fsm.name }}</h2>
+                  <div class="card-head">
+                    <div class="card-icon">◈</div>
+                    <div class="card-meta">
+                      <h2 class="card-name">{{ fsm.name }}</h2>
+                      <p class="card-sub">Smart contract · Solidity</p>
+                    </div>
                   </div>
-                  <div class="badges">
-                    <span class="badge badge-states">
-                      <span class="badge-dot"></span>
-                      {{ fsm.states.length }} states
-                    </span>
-                    <span class="badge badge-trans">
-                      <span class="badge-dot"></span>
-                      {{ fsm.transitions.length }} transitions
-                    </span>
+                  <div class="stats-row">
+                    <div class="stat">
+                      <div class="stat-num" style="color: var(--card-color)">{{ fsm.states.length }}</div>
+                      <div class="stat-label">States</div>
+                    </div>
+                    <div class="stat">
+                      <div class="stat-num amber">{{ fsm.transitions.length }}</div>
+                      <div class="stat-label">Transitions</div>
+                    </div>
+                    <div class="stat">
+                      <div class="stat-num green">{{ (fsm.variables ?? []).length }}</div>
+                      <div class="stat-label">Variables</div>
+                    </div>
                   </div>
-                  <div class="states-preview">
-                    @for (s of fsm.states.slice(0, 4); track s) {
-                      <span class="state-chip" [class.initial]="s === fsm.initialState">{{ s }}</span>
+                  <div class="chips">
+                    @for (s of fsm.states.slice(0, 5); track s) {
+                      <span class="chip" [class.chip-initial]="s === fsm.initialState"
+                        [style.color]="s === fsm.initialState ? getColor(i) : null"
+                        [style.background]="s === fsm.initialState ? getColor(i) + '15' : null"
+                        [style.border-color]="s === fsm.initialState ? getColor(i) + '44' : null">
+                        {{ s }}
+                      </span>
                     }
-                    @if (fsm.states.length > 4) {
-                      <span class="state-chip more">+{{ fsm.states.length - 4 }}</span>
+                    @if (fsm.states.length > 5) {
+                      <span class="chip chip-more">+{{ fsm.states.length - 5 }}</span>
                     }
                   </div>
                 </div>
                 <div class="card-footer">
-                  <button mat-icon-button class="edit-btn" (click)="$event.stopPropagation()" [routerLink]="['/editor', fsm.id]" title="Edit">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button class="del-btn" (click)="$event.stopPropagation(); delete(fsm)" title="Delete">
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
+                  <div class="plugin-badges">
+                    @for (entry of activePlugins(fsm).slice(0, 3); track entry) {
+                      <span class="plugin-badge">{{ entry }}</span>
+                    }
+                  </div>
+                  <div class="card-actions">
+                    <button class="action-btn" title="Edit" (click)="$event.stopPropagation(); navigate(fsm)">✎</button>
+                    <button class="action-btn action-btn-del" title="Delete" (click)="$event.stopPropagation(); confirmDelete.set(fsm)">⊗</button>
+                  </div>
                 </div>
               </div>
             }
           </div>
         }
+
+        @if (!loading() && filtered().length === 0 && fsms().length > 0) {
+          <div class="no-results">No contracts match "{{ searchQuery }}"</div>
+        }
       </main>
+
+      <!-- Delete confirmation modal -->
+      @if (confirmDelete()) {
+        <div class="modal-backdrop" (click)="confirmDelete.set(null)">
+          <div class="modal" (click)="$event.stopPropagation()">
+            <h3 class="modal-title">Delete contract?</h3>
+            <p class="modal-body">
+              <strong>{{ confirmDelete()!.name }}</strong> will be permanently removed.
+            </p>
+            <div class="modal-actions">
+              <button class="modal-cancel" (click)="confirmDelete.set(null)">Cancel</button>
+              <button class="modal-delete" (click)="doDelete()">Delete</button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: var(--sf-bg); }
-    .topbar { height: 56px; padding: 0 1.5rem; }
-    .brand { display: flex; align-items: center; gap: 0.5rem; }
-    .brand-mark { color: var(--sf-primary); font-size: 1.25rem; }
-    .brand-name { font-family: var(--sf-brand); font-weight: 800; font-size: 0.95rem; letter-spacing: 0.15em; color: var(--sf-text); }
-    .spacer { flex: 1; }
-    .new-btn { border-radius: 6px !important; }
-    .loader { position: fixed; top: 56px; left: 0; right: 0; z-index: 10; }
-    .content { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem; }
-    .hero { margin-bottom: 2.5rem; }
-    .hero-title { font-family: var(--sf-brand); font-size: 2.25rem; font-weight: 800; color: var(--sf-text); margin: 0 0 0.375rem; letter-spacing: -0.02em; }
-    .hero-sub { font-size: 0.9rem; color: var(--sf-text-muted); margin: 0; }
-    .empty { text-align: center; padding: 5rem 2rem; }
-    .empty-icon { font-size: 4rem; color: var(--sf-border); margin-bottom: 1.5rem; }
-    .empty-title { font-family: var(--sf-brand); font-size: 1.5rem; font-weight: 700; color: var(--sf-text); margin: 0 0 0.5rem; }
-    .empty-sub { color: var(--sf-text-muted); font-size: 0.9rem; margin: 0 0 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-    .card { position: relative; overflow: hidden; background: var(--sf-elevated); border: 1px solid var(--sf-border); border-radius: var(--sf-radius-lg); cursor: pointer; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; display: flex; flex-direction: column; }
-    .card:hover { border-color: var(--sf-primary); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(41,182,246,0.1); }
-    .card-accent { height: 3px; background: linear-gradient(90deg, var(--sf-primary), var(--sf-amber)); flex-shrink: 0; }
-    .card-body { padding: 1.25rem 1.25rem 0.75rem; flex: 1; }
-    .card-header { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.875rem; }
-    .contract-icon { color: var(--sf-primary); font-size: 1.1rem; }
-    .contract-name { font-family: var(--sf-brand); font-size: 1.1rem; font-weight: 700; color: var(--sf-text); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .badges { display: flex; gap: 0.5rem; margin-bottom: 0.875rem; }
-    .badge { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-family: var(--sf-mono); color: var(--sf-text-muted); background: var(--sf-surface); border: 1px solid var(--sf-border); padding: 0.2rem 0.6rem; border-radius: 20px; }
-    .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--sf-primary); }
-    .badge-trans .badge-dot { background: var(--sf-amber); }
-    .states-preview { display: flex; flex-wrap: wrap; gap: 0.375rem; }
-    .state-chip { font-size: 0.7rem; font-family: var(--sf-mono); color: var(--sf-text-dim); background: var(--sf-surface); border: 1px solid var(--sf-border-soft); padding: 0.15rem 0.5rem; border-radius: 4px; }
-    .state-chip.initial { color: var(--sf-primary); border-color: var(--sf-primary-dim); background: var(--sf-primary-dim); }
-    .state-chip.more { color: var(--sf-text-muted); }
-    .card-footer { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.5rem 0.75rem; border-top: 1px solid var(--sf-border-soft); }
-    .edit-btn { color: var(--sf-text-muted) !important; }
-    .edit-btn:hover { color: var(--sf-primary) !important; }
-    .del-btn { color: var(--sf-text-muted) !important; }
-    .del-btn:hover { color: var(--sf-error) !important; }
+
+    /* ── Nav ─────────────────────────────────────────────────────────────── */
+    .nav {
+      height: 60px; background: var(--sf-surface);
+      border-bottom: 1px solid var(--sf-border);
+      display: flex; align-items: center; padding: 0 2rem; gap: 1rem;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .logo-text { font-family: var(--sf-brand); font-weight: 800; font-size: 1rem; color: var(--sf-text); letter-spacing: -0.01em; }
+    .nav-spacer { flex: 1; }
+
+    .search-wrap { position: relative; width: 240px; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--sf-text-dim); font-size: 14px; pointer-events: none; }
+    .search-input {
+      width: 100%; padding: 0.45rem 0.75rem 0.45rem 2rem;
+      background: var(--sf-elevated); border: 1.5px solid var(--sf-border); border-radius: 8px;
+      font-family: var(--sf-sans); font-size: 0.875rem; color: var(--sf-text); outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--sf-primary); }
+    .search-input::placeholder { color: var(--sf-text-dim); }
+
+    .new-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0.5rem 1.125rem;
+      background: var(--sf-primary); border: none; border-radius: 8px;
+      color: white; font-family: var(--sf-sans); font-weight: 700; font-size: 0.875rem;
+      cursor: pointer; letter-spacing: -0.01em;
+      box-shadow: 0 2px 8px rgba(124,92,252,0.25); transition: all 0.15s;
+      text-decoration: none;
+    }
+    .new-btn:hover { background: #6b4edb; transform: translateY(-1px); }
+    .new-btn-plus { font-size: 18px; line-height: 1; font-weight: 300; }
+
+    .loader { position: fixed; top: 60px; left: 0; right: 0; z-index: 10; }
+
+    /* ── Content ─────────────────────────────────────────────────────────── */
+    .content { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+    .hero { margin-bottom: 2.5rem; animation: sf-fade-in 0.3s ease; }
+    .hero-title { font-family: var(--sf-brand); font-weight: 800; font-size: 2rem; color: var(--sf-text); margin: 0 0 6px; letter-spacing: -0.03em; }
+    .hero-sub { font-family: var(--sf-sans); font-size: 0.9rem; color: var(--sf-text-muted); margin: 0; }
+
+    /* ── Empty ───────────────────────────────────────────────────────────── */
+    .empty { text-align: center; padding: 6rem 2rem; animation: sf-fade-in 0.4s ease; }
+    .empty-icon { width: 80px; height: 80px; background: var(--sf-primary-dim); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem; color: var(--sf-primary); }
+    .empty-title { font-family: var(--sf-brand); font-weight: 700; font-size: 1.25rem; color: var(--sf-text); margin: 0 0 8px; }
+    .empty-sub { font-family: var(--sf-sans); font-size: 0.875rem; color: var(--sf-text-muted); margin: 0 0 28px; }
+
+    /* ── Grid ────────────────────────────────────────────────────────────── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; animation: sf-fade-in 0.3s ease; }
+    .no-results { text-align: center; padding: 4rem; color: var(--sf-text-muted); font-family: var(--sf-sans); }
+
+    /* ── Card ────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--sf-surface);
+      border: 1.5px solid var(--sf-border);
+      border-radius: 14px; cursor: pointer;
+      display: flex; flex-direction: column; overflow: hidden;
+      transition: all 0.2s;
+      box-shadow: var(--sf-shadow);
+    }
+    .card.hovered {
+      border-color: color-mix(in srgb, var(--card-color) 40%, transparent);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 0 0 1px color-mix(in srgb, var(--card-color) 13%, transparent);
+    }
+    .card-bar {
+      height: 4px;
+      background: linear-gradient(90deg, var(--card-color), color-mix(in srgb, var(--card-color) 55%, transparent));
+      flex-shrink: 0;
+    }
+    .card-body { padding: 1.25rem; flex: 1; }
+
+    .card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 1rem; }
+    .card-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: color-mix(in srgb, var(--card-color) 10%, transparent);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 18px; color: var(--card-color);
+    }
+    .card-meta { flex: 1; min-width: 0; }
+    .card-name { font-family: var(--sf-brand); font-weight: 800; font-size: 1rem; color: var(--sf-text); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+    .card-sub { font-family: var(--sf-sans); font-size: 0.75rem; color: var(--sf-text-muted); margin: 2px 0 0; }
+
+    .stats-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+    .stat { flex: 1; background: var(--sf-elevated); border-radius: 8px; padding: 0.5rem 0.75rem; text-align: center; }
+    .stat-num { font-family: var(--sf-brand); font-weight: 800; font-size: 1.25rem; color: var(--sf-primary); line-height: 1; }
+    .stat-num.amber { color: var(--sf-amber); }
+    .stat-num.green { color: var(--sf-success); }
+    .stat-label { font-family: var(--sf-sans); font-size: 0.7rem; color: var(--sf-text-muted); margin-top: 2px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip {
+      font-family: var(--sf-sans); font-size: 0.72rem; font-weight: 600;
+      color: var(--sf-text-muted); background: var(--sf-elevated);
+      border: 1px solid var(--sf-border); padding: 3px 9px; border-radius: 20px;
+    }
+    .chip-more { color: var(--sf-text-dim); }
+
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1.25rem; border-top: 1px solid var(--sf-border);
+    }
+    .plugin-badges { display: flex; gap: 4px; }
+    .plugin-badge {
+      font-family: var(--sf-sans); font-size: 0.68rem; color: var(--sf-text-muted);
+      background: var(--sf-elevated); padding: 2px 7px; border-radius: 20px;
+      border: 1px solid var(--sf-border);
+    }
+    .card-actions { display: flex; gap: 4px; }
+    .action-btn {
+      width: 28px; height: 28px; background: transparent;
+      border: 1px solid transparent; border-radius: 6px;
+      color: var(--sf-text-dim); cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .action-btn:hover { color: var(--sf-primary); background: var(--sf-primary-dim); border-color: rgba(124,92,252,0.3); }
+    .action-btn-del:hover { color: var(--sf-error); background: var(--sf-error-dim); border-color: rgba(239,68,68,0.3); }
+
+    /* ── Delete modal ────────────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15,14,23,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; backdrop-filter: blur(4px);
+    }
+    .modal {
+      background: var(--sf-surface); border-radius: 16px; padding: 2rem;
+      max-width: 380px; width: 90%; box-shadow: var(--sf-shadow-lg);
+      animation: sf-slide-up 0.18s ease;
+    }
+    .modal-title { font-family: var(--sf-brand); font-weight: 800; font-size: 1.1rem; color: var(--sf-text); margin: 0 0 8px; }
+    .modal-body { font-family: var(--sf-sans); font-size: 0.875rem; color: var(--sf-text-muted); margin: 0 0 24px; line-height: 1.6; }
+    .modal-body strong { color: var(--sf-text); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-cancel {
+      padding: 0.5rem 1.125rem; background: var(--sf-surface);
+      border: 1.5px solid var(--sf-border); border-radius: 8px;
+      color: var(--sf-text-muted); font-family: var(--sf-sans); font-weight: 600; cursor: pointer;
+    }
+    .modal-delete {
+      padding: 0.5rem 1.125rem; background: var(--sf-error-dim);
+      border: 1.5px solid rgba(239,68,68,0.33); border-radius: 8px;
+      color: var(--sf-error); font-family: var(--sf-sans); font-weight: 700; cursor: pointer;
+    }
   `],
 })
 export class FsmListComponent implements OnInit {
@@ -139,6 +311,10 @@ export class FsmListComponent implements OnInit {
 
   readonly fsms = signal<FsmDefinition[]>([]);
   readonly loading = signal(true);
+  readonly hoveredId = signal<string | null>(null);
+  readonly confirmDelete = signal<FsmDefinition | null>(null);
+
+  searchQuery = '';
 
   ngOnInit(): void {
     this.api.list().subscribe({
@@ -147,8 +323,29 @@ export class FsmListComponent implements OnInit {
     });
   }
 
-  delete(fsm: FsmDefinition): void {
-    if (!fsm.id) return;
+  filtered() {
+    const q = this.searchQuery.toLowerCase();
+    return q ? this.fsms().filter((f) => f.name.toLowerCase().includes(q)) : this.fsms();
+  }
+
+  navigate(fsm: FsmDefinition): void {
+    this.router.navigate(['/editor', fsm.id]);
+  }
+
+  getColor(index: number): string {
+    return CARD_COLORS[index % CARD_COLORS.length];
+  }
+
+  activePlugins(fsm: FsmDefinition): string[] {
+    return Object.entries(fsm.plugins ?? {})
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+  }
+
+  doDelete(): void {
+    const fsm = this.confirmDelete();
+    if (!fsm?.id) return;
+    this.confirmDelete.set(null);
     this.fsms.update((list) => list.filter((f) => f.id !== fsm.id));
     this.api.delete(fsm.id).subscribe({
       error: () => this.fsms.update((list) => [...list, fsm]),

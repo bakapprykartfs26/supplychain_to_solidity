@@ -12,12 +12,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import type { FsmDefinition } from '@solidflow/shared';
 import { FsmApiService } from '../../core/services/fsm-api.service';
@@ -30,9 +26,9 @@ import { EventsPanelComponent } from './panels/events-panel/events-panel.compone
 import { SolidityPreviewComponent } from './panels/solidity-preview/solidity-preview.component';
 
 const PANEL_WIDTH_KEY = 'sf-panel-width';
-const PANEL_MIN = 240;
+const PANEL_MIN = 280;
 const PANEL_MAX = 720;
-const PANEL_DEFAULT = 340;
+const PANEL_DEFAULT = 360;
 
 const BLANK_DEFINITION: FsmDefinition = {
   name: 'MyContract',
@@ -41,24 +37,44 @@ const BLANK_DEFINITION: FsmDefinition = {
   transitions: [],
 };
 
+type TabId = 'states' | 'transitions' | 'variables' | 'events' | 'plugins';
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'states',      label: 'States' },
+  { id: 'transitions', label: 'Transitions' },
+  { id: 'variables',   label: 'Variables' },
+  { id: 'events',      label: 'Events' },
+  { id: 'plugins',     label: 'Plugins' },
+];
+
 @Component({
   selector: 'app-fsm-editor',
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink,
-    MatToolbarModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatTabsModule, MatProgressBarModule,
+    MatButtonModule, MatIconModule, MatProgressBarModule,
     FsmCanvasComponent, StatesPanelComponent, TransitionsPanelComponent,
     VariablesPanelComponent, PluginsPanelComponent, EventsPanelComponent, SolidityPreviewComponent,
   ],
   template: `
     <div class="editor-shell">
+
       <!-- Topbar -->
-      <mat-toolbar class="topbar">
-        <a routerLink="/" class="back-link" title="Back to list">
-          <mat-icon>arrow_back</mat-icon>
-        </a>
-        <span class="brand-sep">|</span>
+      <div class="topbar">
+        <button class="back-btn" routerLink="/" title="Back to list">←</button>
+        <div class="topbar-div"></div>
+
+        <!-- Logo -->
+        <div class="logo">
+          <div class="logo-mark">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2L13 5V11L8 14L3 11V5L8 2Z" fill="white" opacity="0.9"/>
+              <path d="M8 5L11 6.5V9.5L8 11L5 9.5V6.5L8 5Z" fill="white" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="logo-text">Solidflow</span>
+        </div>
+        <div class="topbar-div"></div>
+
         <input
           class="name-input"
           [ngModel]="definition().name"
@@ -66,29 +82,21 @@ const BLANK_DEFINITION: FsmDefinition = {
           placeholder="Contract name"
           spellcheck="false"
         />
-        <span class="spacer"></span>
+        <div class="spacer"></div>
+
         <div class="status-area">
           @if (saving()) {
-            <span class="status-saving">
-              <mat-icon class="spin">autorenew</mat-icon>
-              Saving
-            </span>
+            <div class="status-saving">
+              <div class="spinner"></div>
+              <span>Saving</span>
+            </div>
           } @else if (saved()) {
-            <span class="status-saved">
-              <mat-icon>check_circle</mat-icon>
-              Saved
-            </span>
+            <span class="status-saved">✓ Saved</span>
           }
         </div>
-        <button mat-flat-button color="primary" (click)="save()" class="save-btn">
-          <mat-icon>save</mat-icon>
-          Save
-        </button>
-      </mat-toolbar>
 
-      @if (saving()) {
-        <mat-progress-bar mode="indeterminate" class="save-bar" />
-      }
+        <button class="save-btn" (click)="save()">Save</button>
+      </div>
 
       <div class="main-area" [class.resizing]="isResizing">
         <!-- Canvas -->
@@ -106,54 +114,52 @@ const BLANK_DEFINITION: FsmDefinition = {
           (mousedown)="onResizeStart($event)"
           title="Drag to resize panel"
         >
-          <div class="handle-track">
-            <div class="handle-grip"></div>
-          </div>
+          <div class="resize-line"></div>
         </div>
 
         <!-- Right panel -->
         <div class="right-panel" [style.width.px]="panelWidth()">
-          <mat-tab-group class="panel-tabs" animationDuration="150ms">
-            <mat-tab label="States">
-              <div class="tab-scroll">
-                <app-states-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
-              </div>
-            </mat-tab>
-            <mat-tab label="Transitions">
-              <div class="tab-scroll">
-                <app-transitions-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
-              </div>
-            </mat-tab>
-            <mat-tab label="Variables">
-              <div class="tab-scroll">
-                <app-variables-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
-              </div>
-            </mat-tab>
-            <mat-tab label="Events">
-              <div class="tab-scroll">
-                <app-events-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
-              </div>
-            </mat-tab>
-            <mat-tab label="Plugins">
-              <div class="tab-scroll">
-                <app-plugins-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
-              </div>
-            </mat-tab>
-          </mat-tab-group>
 
-          <!-- Solidity preview drawer -->
-          <div class="preview-drawer" [class.collapsed]="previewCollapsed()">
-            <button class="drawer-toggle" (click)="togglePreview()">
-              <span class="drawer-label">
-                <mat-icon class="drawer-icon">code</mat-icon>
-                Solidity Preview
-              </span>
-              <mat-icon>{{ previewCollapsed() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          <!-- Custom tabs -->
+          <div class="tabs-bar">
+            @for (tab of TABS; track tab.id) {
+              <button class="tab-btn" [class.active]="activeTab() === tab.id" (click)="activeTab.set(tab.id)">
+                {{ tab.label }}
+              </button>
+            }
+            <div class="tabs-spacer"></div>
+            <button class="preview-toggle" [class.active]="previewOpen()" (click)="togglePreview()" title="Solidity Preview">
+              &lt;/&gt;
             </button>
-            @if (!previewCollapsed()) {
-              <app-solidity-preview [definition]="definition()" />
+          </div>
+
+          <!-- Panel content -->
+          <div class="panel-area">
+            @switch (activeTab()) {
+              @case ('states') {
+                <app-states-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              }
+              @case ('transitions') {
+                <app-transitions-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              }
+              @case ('variables') {
+                <app-variables-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              }
+              @case ('events') {
+                <app-events-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              }
+              @case ('plugins') {
+                <app-plugins-panel [definition]="definition()" (definitionChange)="patchDefinition($event)" />
+              }
             }
           </div>
+
+          <!-- Solidity preview -->
+          @if (previewOpen()) {
+            <div class="preview-pane">
+              <app-solidity-preview [definition]="definition()" />
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -162,109 +168,132 @@ const BLANK_DEFINITION: FsmDefinition = {
     :host { display: block; height: 100vh; overflow: hidden; background: var(--sf-bg); }
     .editor-shell { display: flex; flex-direction: column; height: 100%; }
 
-    .topbar { height: 52px; padding: 0 1rem; gap: 0.75rem; flex-shrink: 0; }
-    .back-link { color: var(--sf-text-muted); display: flex; align-items: center; text-decoration: none; transition: color 0.15s; }
-    .back-link:hover { color: var(--sf-primary); }
-    .brand-sep { color: var(--sf-border); font-size: 1.25rem; font-weight: 100; }
-    .name-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--sf-brand); font-size: 1rem; font-weight: 700; color: var(--sf-text); letter-spacing: -0.01em; min-width: 0; }
-    .name-input::placeholder { color: var(--sf-text-dim); }
-    .spacer { flex: 1; }
-    .status-area { display: flex; align-items: center; min-width: 100px; justify-content: flex-end; }
-    .status-saving, .status-saved { display: flex; align-items: center; gap: 0.375rem; font-size: 0.8rem; }
-    .status-saving { color: var(--sf-text-muted); }
-    .status-saved { color: var(--sf-success); }
-    .status-saving mat-icon, .status-saved mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .save-btn { border-radius: 6px !important; font-family: var(--sf-sans) !important; font-weight: 600 !important; }
-    .save-bar { position: absolute; top: 52px; left: 0; right: 0; z-index: 5; }
+    /* ── Topbar ──────────────────────────────────────────────────────────── */
+    .topbar {
+      height: 56px; background: var(--sf-surface);
+      border-bottom: 1px solid var(--sf-border);
+      display: flex; align-items: center; padding: 0 1.25rem; gap: 12px;
+      flex-shrink: 0; z-index: 10; box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
 
-    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .back-btn {
+      width: 32px; height: 32px; background: transparent;
+      border: 1.5px solid var(--sf-border); border-radius: 8px;
+      color: var(--sf-text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: all 0.15s; flex-shrink: 0;
+    }
+    .back-btn:hover { border-color: rgba(124,92,252,0.5); color: var(--sf-primary); }
+
+    .topbar-div { width: 1px; height: 20px; background: var(--sf-border); flex-shrink: 0; }
+
+    .logo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .logo-text { font-family: var(--sf-brand); font-weight: 800; font-size: 1rem; color: var(--sf-text); letter-spacing: -0.01em; }
+
+    .name-input {
+      flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+      font-family: var(--sf-brand); font-size: 0.95rem; font-weight: 700;
+      color: var(--sf-text); letter-spacing: -0.01em;
+    }
+    .name-input::placeholder { color: var(--sf-text-dim); }
+
+    .spacer { flex: 1; }
+
+    .status-area { display: flex; align-items: center; min-width: 90px; justify-content: flex-end; }
+    .status-saving { display: flex; align-items: center; gap: 5px; font-family: var(--sf-sans); font-size: 0.8rem; color: var(--sf-text-muted); }
+    .status-saved { font-family: var(--sf-sans); font-size: 0.8rem; color: var(--sf-success); font-weight: 600; }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--sf-border); border-top-color: var(--sf-primary);
+      border-radius: 50%; animation: sf-spin 0.8s linear infinite;
+    }
+
+    .save-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0.45rem 1rem; background: var(--sf-primary); border: none; border-radius: 8px;
+      color: white; font-family: var(--sf-sans); font-weight: 700; font-size: 0.83rem;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(124,92,252,0.25);
+      flex-shrink: 0; transition: background 0.15s;
+    }
+    .save-btn:hover { background: #6b4edb; }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
     .main-area { display: flex; flex: 1; overflow: hidden; }
     .main-area.resizing { cursor: col-resize; user-select: none; }
     .main-area.resizing .canvas-area { pointer-events: none; }
 
-    .canvas-area { flex: 1; overflow: hidden; background: var(--sf-bg); min-width: 0; }
+    .canvas-area { flex: 1; overflow: hidden; min-width: 0; }
 
-    /* ── Resize handle ──────────────────────────────────────────────────── */
+    /* ── Resize handle ───────────────────────────────────────────────────── */
     .resize-handle {
-      width: 8px;
-      flex-shrink: 0;
-      cursor: col-resize;
-      position: relative;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 5px; flex-shrink: 0; cursor: col-resize;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--sf-bg); z-index: 10;
     }
-    .handle-track {
-      width: 2px;
-      height: 100%;
-      background: var(--sf-border);
-      transition: background 0.15s, box-shadow 0.15s, width 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 2px;
+    .resize-line {
+      width: 1px; height: 100%; background: var(--sf-border);
+      transition: background 0.15s;
     }
-    .handle-grip {
-      width: 4px;
-      height: 32px;
-      border-radius: 4px;
-      background: var(--sf-border);
-      transition: background 0.15s, box-shadow 0.15s;
-      position: relative;
-    }
-    .handle-grip::before,
-    .handle-grip::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 2px;
-      height: 2px;
-      border-radius: 50%;
-      background: var(--sf-text-dim);
-    }
-    .handle-grip::before { top: 8px; box-shadow: 0 6px 0 var(--sf-text-dim), 0 12px 0 var(--sf-text-dim); }
-    .handle-grip::after  { display: none; }
-
-    .resize-handle:hover .handle-track,
-    .resize-handle.active .handle-track {
-      width: 2px;
+    .resize-handle:hover .resize-line,
+    .resize-handle.active .resize-line {
       background: var(--sf-primary);
-      box-shadow: 0 0 8px var(--sf-primary);
-    }
-    .resize-handle:hover .handle-grip,
-    .resize-handle.active .handle-grip {
-      background: var(--sf-primary);
-      box-shadow: 0 0 6px var(--sf-primary);
-    }
-    .resize-handle:hover .handle-grip::before,
-    .resize-handle.active .handle-grip::before {
-      background: var(--sf-primary);
-      box-shadow: 0 6px 0 var(--sf-primary), 0 12px 0 var(--sf-primary);
     }
 
-    /* ── Right panel ────────────────────────────────────────────────────── */
-    .right-panel { flex-shrink: 0; display: flex; flex-direction: column; background: var(--sf-surface); overflow: hidden; min-width: ${PANEL_MIN}px; max-width: ${PANEL_MAX}px; }
+    /* ── Right panel ─────────────────────────────────────────────────────── */
+    .right-panel {
+      flex-shrink: 0; display: flex; flex-direction: column;
+      background: var(--sf-surface); overflow: hidden;
+      border-left: 1px solid var(--sf-border);
+    }
 
-    .panel-tabs { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-    ::ng-deep .panel-tabs .mat-mdc-tab-body-wrapper { flex: 1; overflow: hidden; }
-    ::ng-deep .panel-tabs .mat-mdc-tab-body { height: 100%; }
-    ::ng-deep .panel-tabs .mat-mdc-tab-body-content { height: 100%; overflow: hidden; }
-    .tab-scroll { height: 100%; overflow-y: auto; }
+    /* ── Tabs ────────────────────────────────────────────────────────────── */
+    .tabs-bar {
+      border-bottom: 1px solid var(--sf-border); flex-shrink: 0;
+      display: flex; overflow-x: auto; background: var(--sf-surface);
+    }
+    .tabs-bar::-webkit-scrollbar { display: none; }
 
-    .preview-drawer { flex-shrink: 0; border-top: 1px solid var(--sf-border); display: flex; flex-direction: column; max-height: 45%; }
-    .preview-drawer.collapsed { max-height: 44px; }
-    .drawer-toggle { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 1rem; background: var(--sf-elevated); border: none; cursor: pointer; color: var(--sf-text-muted); width: 100%; flex-shrink: 0; transition: background 0.15s; }
-    .drawer-toggle:hover { background: var(--sf-border-soft); }
-    .drawer-label { display: flex; align-items: center; gap: 0.5rem; font-family: var(--sf-sans); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-    .drawer-icon { font-size: 16px; width: 16px; height: 16px; color: var(--sf-primary); }
-    app-solidity-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 220px; }
+    .tab-btn {
+      padding: 0.7rem 0.875rem; background: transparent; border: none;
+      border-bottom: 2.5px solid transparent;
+      color: var(--sf-text-muted); font-family: var(--sf-sans); font-size: 0.8rem;
+      font-weight: 500; cursor: pointer; transition: all 0.15s;
+      white-space: nowrap; letter-spacing: -0.01em;
+    }
+    .tab-btn.active { color: var(--sf-primary); border-bottom-color: var(--sf-primary); font-weight: 700; }
+    .tab-btn:hover:not(.active) { color: var(--sf-text); }
+
+    .tabs-spacer { flex: 1; }
+
+    .preview-toggle {
+      padding: 0.7rem 0.875rem; background: transparent; border: none;
+      border-bottom: 2.5px solid transparent;
+      color: var(--sf-text-dim); font-family: var(--sf-mono); font-size: 0.75rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    }
+    .preview-toggle.active { color: var(--sf-success); border-bottom-color: var(--sf-success); }
+    .preview-toggle:hover { color: var(--sf-text-muted); }
+
+    /* ── Panel area ──────────────────────────────────────────────────────── */
+    .panel-area { flex: 1; overflow-y: auto; min-height: 0; }
+
+    /* ── Preview pane ────────────────────────────────────────────────────── */
+    .preview-pane {
+      flex: 0 0 45%; border-top: 1px solid var(--sf-border);
+      display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+      background: var(--sf-elevated);
+    }
+    app-solidity-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
   `],
 })
 export class FsmEditorComponent implements OnInit, OnDestroy {
+  readonly TABS = TABS;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(FsmApiService);
@@ -275,7 +304,8 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
   readonly definition = signal<FsmDefinition>({ ...BLANK_DEFINITION });
   readonly saving = signal(false);
   readonly saved = signal(false);
-  readonly previewCollapsed = signal(false);
+  readonly activeTab = signal<TabId>('states');
+  readonly previewOpen = signal(true);
   readonly isNew = computed(() => !this.definition().id);
 
   readonly panelWidth = signal(PANEL_DEFAULT);
@@ -285,11 +315,10 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
     const resolved = this.route.snapshot.data['fsm'] as FsmDefinition | undefined;
     if (resolved) this.definition.set(resolved);
 
-    // Restore saved panel width
     try {
       const saved = localStorage.getItem(PANEL_WIDTH_KEY);
       if (saved) this.panelWidth.set(Math.max(PANEL_MIN, Math.min(PANEL_MAX, parseInt(saved, 10))));
-    } catch { /* localStorage unavailable in SSR */ }
+    } catch { /* localStorage unavailable */ }
 
     this.autosave$
       .pipe(debounceTime(3000), takeUntil(this.destroy$))
@@ -306,7 +335,7 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
     const startWidth = this.panelWidth();
 
     const onMove = (ev: MouseEvent) => {
-      const delta = startX - ev.clientX; // moving left = larger panel
+      const delta = startX - ev.clientX;
       this.panelWidth.set(Math.max(PANEL_MIN, Math.min(PANEL_MAX, startWidth + delta)));
     };
 
@@ -324,6 +353,8 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
     this.doc.addEventListener('mousemove', onMove);
     this.doc.addEventListener('mouseup', onUp);
   }
+
+  togglePreview(): void { this.previewOpen.update((v) => !v); }
 
   patchDefinition(partial: Partial<FsmDefinition> | FsmDefinition): void {
     const isFullDef = 'states' in partial && 'transitions' in partial;
@@ -361,8 +392,6 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
       error: () => this.saving.set(false),
     });
   }
-
-  togglePreview(): void { this.previewCollapsed.update((v) => !v); }
 
   private flashSaved(): void {
     this.saved.set(true);
