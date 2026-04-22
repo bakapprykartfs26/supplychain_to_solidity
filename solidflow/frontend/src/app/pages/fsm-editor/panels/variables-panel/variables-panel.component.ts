@@ -7,6 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
 import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
 
 @Component({
@@ -163,36 +164,11 @@ export class VariablesPanelComponent {
   @Input() definition!: FsmDefinition;
   @Output() definitionChange = new EventEmitter<FsmDefinition>();
 
-  readonly solidityPrimitiveTypes: string[] = [
-    'uint256',
-    'int256',
-    'string',
-    'bool',
-    'address',
-    'bytes',
-    'bytes1',
-    'bytes2',
-    'bytes4',
-    'bytes8',
-    'bytes16',
-    'bytes32',
-    'uint',
-    'uint8',
-    'uint16',
-    'uint32',
-    'uint64',
-    'uint128',
-    'int',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'int128',
-  ];
+  readonly solidityTypes = SOLIDITY_TYPES;
 
   getAvailableTypes(): string[] {
     const customTypeNames = (this.definition.customTypes ?? []).map((ct) => ct.name);
-    return [...this.solidityPrimitiveTypes, ...customTypeNames];
+    return [...this.solidityTypes, ...customTypeNames];
   }
 
   add(): void {

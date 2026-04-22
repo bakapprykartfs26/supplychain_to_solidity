@@ -7,12 +7,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
+import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
 import type { FsmDefinition, FsmEvent, FsmEventParam } from '@solidflow/shared';
 
 @Component({
   selector: 'app-events-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatExpansionModule, MatCheckboxModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatExpansionModule, MatCheckboxModule, MatSelectModule],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -49,7 +51,11 @@ import type { FsmDefinition, FsmEvent, FsmEventParam } from '@solidflow/shared';
                 <div class="param-row">
                   <mat-form-field appearance="fill" class="param-type">
                     <mat-label>Type</mat-label>
-                    <input matInput [ngModel]="p.type" (ngModelChange)="patchParam(i, pi, { type: $event })" spellcheck="false" class="mono" placeholder="uint256" />
+                    <mat-select [ngModel]="p.type" (ngModelChange)="patchParam(i, pi, { type: $event })">
+                      @for (typ of solidityTypes; track typ) {
+                        <mat-option [value]="typ">{{ typ }}</mat-option>
+                      }
+                    </mat-select>
                   </mat-form-field>
                   <mat-form-field appearance="fill" class="param-name">
                     <mat-label>Name</mat-label>
@@ -114,6 +120,8 @@ import type { FsmDefinition, FsmEvent, FsmEventParam } from '@solidflow/shared';
 export class EventsPanelComponent {
   @Input() definition!: FsmDefinition;
   @Output() definitionChange = new EventEmitter<FsmDefinition>();
+
+  readonly solidityTypes = SOLIDITY_TYPES;
 
   addEvent(): void {
     const n = (this.definition.events ?? []).length + 1;

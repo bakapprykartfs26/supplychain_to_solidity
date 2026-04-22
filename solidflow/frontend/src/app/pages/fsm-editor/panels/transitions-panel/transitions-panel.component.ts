@@ -13,6 +13,7 @@ import type { FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
 import { StatementListComponent } from './statement-list.component';
 import { GuardSelectorComponent } from './guard-selector.component';
+import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
 
 @Component({
   selector: 'app-transitions-panel',
@@ -275,12 +276,7 @@ export class TransitionsPanelComponent {
     this.patchTransition(ti, { emitEventArgs: args });
   }
 
-  readonly solidityTypes = [
-    'uint256', 'int256', 'string', 'bool', 'address', 'bytes',
-    'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 
-    'int8', 'int16', 'int32', 'int64', 'int128', 
-    'bytes8', 'bytes16', 'bytes32',
-  ];
+  readonly solidityTypes = SOLIDITY_TYPES;
 
   addInput(transitionIndex: number): void {
     const inputs = [...(this.definition.transitions[transitionIndex].inputs ?? []), { type: 'uint256', name: '' }];
