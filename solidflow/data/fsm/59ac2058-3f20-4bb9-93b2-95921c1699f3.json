@@ -10,41 +10,156 @@
       "id": "fd357a15-7af4-4c8f-8734-bb134a5c9b71",
       "name": "buyTicket",
       "from": "Buy Stage",
-      "to": "Buy Stage"
+      "to": "Buy Stage",
+      "payable": true,
+      "inputs": [
+        {
+          "type": "bytes32",
+          "name": "secret"
+        }
+      ],
+      "emitEvent": "TicketSold",
+      "emitEventArgs": [
+        "msg.sender",
+        "jackpot"
+      ]
     },
     {
       "id": "2816716c-4711-4e60-9fb8-3eba0a1e425f",
       "name": "switchToReveal",
       "from": "Buy Stage",
-      "to": "Reveal Stage"
+      "to": "Reveal Stage",
+      "emitEvent": "StageChange"
     },
     {
       "id": "9f19ff38-d28d-4cdf-8246-ee6effd1126d",
       "name": "revealSecret",
       "from": "Reveal Stage",
-      "to": "Reveal Stage"
+      "to": "Reveal Stage",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "secretNumber"
+        }
+      ]
     },
     {
       "id": "335468b6-c807-4eca-bbd5-ac3a58385204",
       "name": "evaluate",
       "from": "Reveal Stage",
-      "to": "Reveal Stage"
+      "to": "Buy Stage",
+      "emitEvent": "WinnerSelected",
+      "emitEventArgs": [
+        "players[0]",
+        "jackpot"
+      ]
     },
     {
       "id": "2bffc5c4-af3d-4762-8e04-5c794ec0c6f0",
       "name": "collect",
       "from": "Reveal Stage",
+      "to": "Reveal Stage"
+    },
+    {
+      "id": "ddf19262-bc6e-419d-ad83-4a9db9706e47",
+      "name": "collect2",
+      "from": "Buy Stage",
       "to": "Buy Stage"
     }
   ],
   "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
   "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-14T18:45:41.545Z",
+  "updatedAt": "2026-04-22T10:03:10.226Z",
   "variables": [
     {
-      "name": "a",
+      "name": "players",
+      "type": "address",
+      "visibility": "public",
+      "isArray": true,
+      "dimensions": [
+        {
+          "size": ""
+        }
+      ]
+    },
+    {
+      "name": "buyStageDuration",
+      "type": "uint256",
+      "visibility": "public"
+    },
+    {
+      "name": "revealStageDuration",
+      "type": "uint256",
+      "visibility": "public"
+    },
+    {
+      "name": "deadlineBuy",
+      "type": "uint256",
+      "visibility": "public"
+    },
+    {
+      "name": "deadlineReveal",
+      "type": "uint256",
+      "visibility": "public"
+    },
+    {
+      "name": "ticketPrice",
+      "type": "uint256",
+      "visibility": "public"
+    },
+    {
+      "name": "jackpot",
+      "type": "uint256",
+      "visibility": "public"
+    },
+    {
+      "name": "randomNumber",
       "type": "uint256",
       "visibility": "public"
     }
-  ]
+  ],
+  "events": [
+    {
+      "name": "StageChange",
+      "params": []
+    },
+    {
+      "name": "TicketSold",
+      "params": [
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "updatedJackpot",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "name": "WinnerSelected",
+      "params": [
+        {
+          "name": "winner",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "payout",
+          "type": "uint256"
+        }
+      ]
+    }
+  ],
+  "customTypes": [],
+  "constructorConfig": {
+    "includedVariables": [
+      "buyStageDuration",
+      "revealStageDuration",
+      "ticketPrice"
+    ],
+    "includedArrays": [],
+    "includedStructs": []
+  }
 }
