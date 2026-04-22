@@ -22,6 +22,36 @@
       "emitEventArgs": [
         "msg.sender",
         "jackpot"
+      ],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.value == ticketPrice"
+            },
+            "operator": "AND",
+            "errorMessage": "asdf"
+          },
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "secret != bytes32(0)"
+            },
+            "operator": "AND"
+          },
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "1==1"
+            },
+            "operator": "AND"
+          }
+        ]
+      },
+      "statements": [
+        "/// secrets[msg.sender] = secret;",
+        "jackpot += msg.value;"
       ]
     },
     {
@@ -29,7 +59,18 @@
       "name": "switchToReveal",
       "from": "Buy Stage",
       "to": "Reveal Stage",
-      "emitEvent": "StageChange"
+      "emitEvent": "StageChange",
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "block.timestamp > deadlineBuy"
+            },
+            "operator": "AND"
+          }
+        ]
+      }
     },
     {
       "id": "9f19ff38-d28d-4cdf-8246-ee6effd1126d",
@@ -41,7 +82,25 @@
           "type": "uint256",
           "name": "secretNumber"
         }
-      ]
+      ],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "1 == 1"
+            },
+            "operator": "AND"
+          },
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "keccak256(abi.encode(secretNumber)) == bytes32(0)"
+            },
+            "operator": "AND"
+          }
+        ]
+      }
     },
     {
       "id": "335468b6-c807-4eca-bbd5-ac3a58385204",
@@ -69,7 +128,7 @@
   ],
   "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
   "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-22T10:03:10.226Z",
+  "updatedAt": "2026-04-22T11:01:12.748Z",
   "variables": [
     {
       "name": "players",
