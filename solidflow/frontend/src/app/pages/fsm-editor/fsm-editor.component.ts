@@ -6,8 +6,7 @@ import {
   signal,
   computed,
 } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
-import { CommonModule } from '@angular/common';
+import { DOCUMENT, CommonModule, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -15,7 +14,8 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import type { FsmDefinition } from '@solidflow/shared';
+import { minimizeFsm } from '@solidflow/shared';
+import type { FsmDefinition, FsmMinimizationResult } from '@solidflow/shared';
 import { FsmApiService } from '../../core/services/fsm-api.service';
 import { FsmCanvasComponent } from './canvas/fsm-canvas.component';
 import { StatesPanelComponent } from './panels/states-panel/states-panel.component';
@@ -52,7 +52,7 @@ const TABS: { id: TabId; label: string }[] = [
   selector: 'app-fsm-editor',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink,
+    CommonModule, FormsModule, RouterLink, KeyValuePipe,
     MatButtonModule, MatIconModule, MatProgressBarModule,
     FsmCanvasComponent, StatesPanelComponent, TransitionsPanelComponent, ConstructorPanelComponent,
     VariablesPanelComponent, PluginsPanelComponent, EventsPanelComponent, SolidityPreviewComponent,
@@ -97,8 +97,21 @@ const TABS: { id: TabId; label: string }[] = [
           }
         </div>
 
+        <button
+          class="minimize-btn"
+          (click)="minimize()"
+          [disabled]="isNew()"
+          title="Minimize FSM (Hopcroft)"
+        >
+          Minimize
+        </button>
+
         <button class="save-btn" (click)="save()">Save</button>
       </div>
+
+      @if (alreadyMinimalFlash()) {
+        <div class="minimize-banner">FSM is already minimal — no changes.</div>
+      }
 
       <div class="main-area" [class.resizing]="isResizing">
         <!-- Canvas -->
@@ -167,6 +180,68 @@ const TABS: { id: TabId; label: string }[] = [
           }
         </div>
       </div>
+
+      <!-- Minimize confirmation dialog -->
+      @if (minimizePreview(); as preview) {
+        <div class="dialog-backdrop" (click)="cancelMinimize()">
+          <div class="dialog" (click)="$event.stopPropagation()">
+
+            <div class="dialog-header">
+              <span class="dialog-title">Optimization Found</span>
+              <button class="dialog-close" (click)="cancelMinimize()" title="Cancel">✕</button>
+            </div>
+
+            <div class="dialog-body">
+
+              @if (preview.stats.removedUnreachableStates.length > 0) {
+                <div class="dialog-section">
+                  <div class="dialog-section-label">Unreachable states removed</div>
+                  @for (s of preview.stats.removedUnreachableStates; track s) {
+                    <div class="dialog-tag dialog-tag--red">{{ s }}</div>
+                  }
+                </div>
+              }
+
+              @if (preview.stats.removedDeadStates.length > 0) {
+                <div class="dialog-section">
+                  <div class="dialog-section-label">Dead-end states removed</div>
+                  @for (s of preview.stats.removedDeadStates; track s) {
+                    <div class="dialog-tag dialog-tag--orange">{{ s }}</div>
+                  }
+                </div>
+              }
+
+              @if (preview.stats.mergedStates | keyvalue; as merges) {
+                @if (merges.length > 0) {
+                  <div class="dialog-section">
+                    <div class="dialog-section-label">Equivalent states merged</div>
+                    @for (entry of merges; track entry.key) {
+                      <div class="dialog-merge-row">
+                        <span class="dialog-tag dialog-tag--purple">{{ entry.key }}</span>
+                        <span class="dialog-arrow">→</span>
+                        <span class="dialog-tag dialog-tag--purple-outline">{{ entry.value }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              <div class="dialog-summary">
+                {{ preview.stats.originalStateCount }} → {{ preview.stats.minimizedStateCount }} states ·
+                {{ preview.stats.originalTransitionCount }} → {{ preview.stats.minimizedTransitionCount }} transitions
+              </div>
+
+            </div>
+
+            <div class="dialog-footer">
+              <button class="dialog-btn-cancel" (click)="cancelMinimize()">Cancel</button>
+              <button class="dialog-btn-apply" (click)="applyMinimize()">Apply</button>
+            </div>
+
+          </div>
+        </div>
+      }
+
     </div>
   `,
   styles: [`
@@ -217,6 +292,16 @@ const TABS: { id: TabId; label: string }[] = [
       border: 2px solid var(--sf-border); border-top-color: var(--sf-primary);
       border-radius: 50%; animation: sf-spin 0.8s linear infinite;
     }
+
+    .minimize-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0.45rem 0.85rem; background: transparent;
+      border: 1.5px solid var(--sf-border); border-radius: 8px;
+      color: var(--sf-text-muted); font-family: var(--sf-sans); font-weight: 600; font-size: 0.83rem;
+      cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+    }
+    .minimize-btn:hover:not(:disabled) { border-color: rgba(124,92,252,0.5); color: var(--sf-primary); }
+    .minimize-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .save-btn {
       display: flex; align-items: center; gap: 6px;
@@ -294,6 +379,96 @@ const TABS: { id: TabId; label: string }[] = [
       background: var(--sf-elevated);
     }
     app-solidity-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* ── Already-minimal banner ─────────────────────────────────────────── */
+    .minimize-banner {
+      padding: 0.45rem 1.25rem;
+      font-family: var(--sf-sans); font-size: 0.8rem; font-weight: 600;
+      background: rgba(100,100,100,0.07); color: var(--sf-text-muted);
+      border-bottom: 1px solid var(--sf-border); flex-shrink: 0;
+    }
+
+    /* ── Minimize Dialog ─────────────────────────────────────────────────── */
+    .dialog-backdrop {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .dialog {
+      background: var(--sf-surface); border: 1px solid var(--sf-border);
+      border-radius: 14px; width: 420px; max-width: calc(100vw - 2rem);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .dialog-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--sf-border);
+    }
+    .dialog-title {
+      font-family: var(--sf-sans); font-weight: 700; font-size: 0.95rem; color: var(--sf-text);
+    }
+    .dialog-close {
+      background: transparent; border: none; color: var(--sf-text-muted);
+      font-size: 1rem; cursor: pointer; padding: 0.2rem; line-height: 1;
+      transition: color 0.15s;
+    }
+    .dialog-close:hover { color: var(--sf-text); }
+
+    .dialog-body {
+      padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;
+      max-height: 50vh; overflow-y: auto;
+    }
+
+    .dialog-section { display: flex; flex-direction: column; gap: 0.4rem; }
+    .dialog-section-label {
+      font-family: var(--sf-sans); font-size: 0.75rem; font-weight: 600;
+      color: var(--sf-text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    .dialog-tag {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 6px; font-family: var(--sf-mono); font-size: 0.78rem; font-weight: 600;
+      width: fit-content;
+    }
+    .dialog-tag--red { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .dialog-tag--orange { background: rgba(251,146,60,0.12); color: #f97316; }
+    .dialog-tag--purple { background: rgba(124,92,252,0.12); color: var(--sf-primary); }
+    .dialog-tag--purple-outline {
+      background: transparent; color: var(--sf-primary);
+      border: 1.5px solid rgba(124,92,252,0.35);
+    }
+
+    .dialog-merge-row { display: flex; align-items: center; gap: 0.5rem; }
+    .dialog-arrow { color: var(--sf-text-dim); font-size: 0.9rem; }
+
+    .dialog-summary {
+      font-family: var(--sf-sans); font-size: 0.8rem; color: var(--sf-text-muted);
+      padding-top: 0.25rem; border-top: 1px solid var(--sf-border);
+    }
+
+    .dialog-footer {
+      display: flex; justify-content: flex-end; gap: 0.6rem;
+      padding: 0.85rem 1.25rem; border-top: 1px solid var(--sf-border);
+      background: var(--sf-bg);
+    }
+
+    .dialog-btn-cancel {
+      padding: 0.45rem 1rem; background: transparent;
+      border: 1.5px solid var(--sf-border); border-radius: 8px;
+      color: var(--sf-text-muted); font-family: var(--sf-sans); font-weight: 600;
+      font-size: 0.83rem; cursor: pointer; transition: all 0.15s;
+    }
+    .dialog-btn-cancel:hover { border-color: var(--sf-text-muted); color: var(--sf-text); }
+
+    .dialog-btn-apply {
+      padding: 0.45rem 1.1rem; background: var(--sf-primary); border: none;
+      border-radius: 8px; color: white; font-family: var(--sf-sans); font-weight: 700;
+      font-size: 0.83rem; cursor: pointer; box-shadow: 0 2px 8px rgba(124,92,252,0.25);
+      transition: background 0.15s;
+    }
+    .dialog-btn-apply:hover { background: #6b4edb; }
   `],
 })
 export class FsmEditorComponent implements OnInit, OnDestroy {
@@ -314,6 +489,9 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
   readonly isNew = computed(() => !this.definition().id);
 
   readonly panelWidth = signal(PANEL_DEFAULT);
+  readonly minimizePreview = signal<FsmMinimizationResult | null>(null);
+  readonly alreadyMinimalFlash = signal(false);
+  private alreadyMinimalTimer?: ReturnType<typeof setTimeout>;
   isResizing = false;
 
   ngOnInit(): void {
@@ -330,7 +508,11 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
       .subscribe((def) => { if (def.id) this.doUpdate(def); });
   }
 
-  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    clearTimeout(this.alreadyMinimalTimer);
+  }
 
   onResizeStart(e: MouseEvent): void {
     e.preventDefault();
@@ -373,6 +555,29 @@ export class FsmEditorComponent implements OnInit, OnDestroy {
   onCanvasChange(updated: FsmDefinition): void {
     this.definition.set(updated);
     this.autosave$.next(updated);
+  }
+
+  minimize(): void {
+    if (this.isNew()) return;
+    const result = minimizeFsm(this.definition());
+    if (result.stats.alreadyMinimal) {
+      this.alreadyMinimalFlash.set(true);
+      clearTimeout(this.alreadyMinimalTimer);
+      this.alreadyMinimalTimer = setTimeout(() => this.alreadyMinimalFlash.set(false), 3000);
+    } else {
+      this.minimizePreview.set(result);
+    }
+  }
+
+  applyMinimize(): void {
+    const preview = this.minimizePreview();
+    if (!preview) return;
+    this.minimizePreview.set(null);
+    this.patchDefinition(preview.minimized);
+  }
+
+  cancelMinimize(): void {
+    this.minimizePreview.set(null);
   }
 
   save(): void {

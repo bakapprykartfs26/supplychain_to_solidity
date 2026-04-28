@@ -8,7 +8,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { FsmDefinition } from '@solidflow/shared';
+import { FsmDefinition, minimizeFsm, FsmMinimizationResult } from '@solidflow/shared';
 import { CreateFsmDto } from './dto/create-fsm.dto';
 import { UpdateFsmDto } from './dto/update-fsm.dto';
 import { FsmSchemaGuard } from './guards/fsm-schema.guard';
@@ -52,6 +52,12 @@ export class FsmController {
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
     return this.fsmService.remove(id);
+  }
+
+  @Get(':id/minimize')
+  async minimizeById(@Param('id') id: string): Promise<FsmMinimizationResult> {
+    const fsm = await this.fsmService.findOne(id);
+    return minimizeFsm(fsm);
   }
 
   @Get(':id/compile')
