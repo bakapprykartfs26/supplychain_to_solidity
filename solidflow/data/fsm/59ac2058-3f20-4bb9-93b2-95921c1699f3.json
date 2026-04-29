@@ -44,7 +44,7 @@
           {
             "guard": {
               "type": "input-validation",
-              "expression": "1==1"
+              "expression": "secrets[msg.sender] == bytes32(0)"
             },
             "operator": "AND",
             "errorMessage": "Only one ticket per player is allowed"
@@ -52,7 +52,7 @@
         ]
       },
       "statements": [
-        "/// secrets[msg.sender] = secret;",
+        "secrets[msg.sender] = secret;",
         "jackpot += msg.value;"
       ]
     },
@@ -61,7 +61,6 @@
       "name": "switchToReveal",
       "from": "Buy Stage",
       "to": "Reveal Stage",
-      "emitEvent": "StageChange",
       "guardConfig": {
         "guards": [
           {
@@ -94,12 +93,12 @@
               "expression": "1 == 1"
             },
             "operator": "AND",
-            "errorMessage": "No secret to reveal"
+            "errorMessage": "secrets[msg.sender] != bytes32(0)"
           },
           {
             "guard": {
               "type": "input-validation",
-              "expression": "keccak256(abi.encode(secretNumber)) == bytes32(0)"
+              "expression": "keccak256(abi.encode(secretNumber)) == secrets[msg.sender]"
             },
             "operator": "AND",
             "errorMessage": "Secret does not match commitment"
@@ -107,7 +106,7 @@
         ]
       },
       "statements": [
-        "/// secrets[msg.sender] = bytes32(0);",
+        "secrets[msg.sender] = bytes32(0);",
         "players.push(msg.sender);",
         "randomNumber = uint(keccak256(abi.encodePacked(randomNumber, secretNumber)));"
       ]
@@ -160,7 +159,7 @@
   ],
   "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
   "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-22T13:19:36.659Z",
+  "updatedAt": "2026-04-29T09:47:10.283Z",
   "variables": [
     {
       "name": "players",
@@ -215,10 +214,6 @@
   ],
   "events": [
     {
-      "name": "StageChange",
-      "params": []
-    },
-    {
       "name": "TicketSold",
       "params": [
         {
@@ -256,5 +251,22 @@
     ],
     "includedArrays": [],
     "includedStructs": []
+  },
+  "mappings": [
+    {
+      "name": "secrets",
+      "keyType": "address",
+      "valueType": "bytes32",
+      "visibility": "public"
+    },
+    {
+      "name": "winners",
+      "keyType": "address",
+      "valueType": "uint256",
+      "visibility": "public"
+    }
+  ],
+  "plugins": {
+    "event": true
   }
 }
