@@ -206,6 +206,97 @@ describe('minimizeFsm', () => {
     expect(stats.minimizedStateCount).toBe(4);
   });
 
+  it('does not merge states whose transitions differ only in guardConfig', () => {
+    // A has an access-control guard for "admin", B for "owner" — structurally
+    // different guardConfigs must prevent merging even if the raw guard string
+    // is absent on both.
+    const def = fsm(
+      ['Start', 'A', 'B', 'Done'],
+      'Start',
+      [
+        tr('toA', 'Start', 'A'),
+        tr('toB', 'Start', 'B'),
+        {
+          ...tr('go', 'A', 'Done'),
+          guardConfig: { guards: [{ guard: { type: 'access-control', role: 'admin' }, operator: 'AND' as const }] },
+        },
+        {
+          ...tr('go', 'B', 'Done'),
+          guardConfig: { guards: [{ guard: { type: 'access-control', role: 'owner' }, operator: 'AND' as const }] },
+        },
+      ],
+    );
+    const { stats } = minimizeFsm(def);
+    expect(stats.mergedStates).toEqual({});
+    expect(stats.minimizedStateCount).toBe(4);
+  });
+
+  it('merges states whose transitions have identical guardConfig', () => {
+    // A and B both carry the same access-control guard → they are equivalent
+    // and should be merged just like transitions with matching plain guards.
+    const sharedGuardConfig = { guards: [{ guard: { type: 'access-control' as const, role: 'admin' }, operator: 'AND' as const }] };
+    const def = fsm(
+      ['Start', 'A', 'B', 'Done'],
+      'Start',
+      [
+        tr('toA', 'Start', 'A'),
+        tr('toB', 'Start', 'B'),
+        { ...tr('go', 'A', 'Done'), guardConfig: sharedGuardConfig },
+        { ...tr('go', 'B', 'Done'), guardConfig: sharedGuardConfig },
+      ],
+    );
+    const { minimized, stats } = minimizeFsm(def);
+    expect(stats.minimizedStateCount).toBe(3); // Start, rep(A|B), Done
+    expect(Object.keys(stats.mergedStates)).toHaveLength(1);
+    expect(minimized.transitions.filter((t) => t.name === 'go')).toHaveLength(1);
+  });
+
+  it('treats guardConfig as identical regardless of object property insertion order', () => {
+    // The same logical guardConfig constructed with differing key order must
+    // produce the same signature and therefore not prevent merging.
+    const guardA = { guards: [{ operator: 'AND' as const, guard: { role: 'admin', type: 'access-control' as const } }] };
+    const guardB = { guards: [{ guard: { type: 'access-control' as const, role: 'admin' }, operator: 'AND' as const }] };
+    const def = fsm(
+      ['Start', 'A', 'B', 'Done'],
+      'Start',
+      [
+        tr('toA', 'Start', 'A'),
+        tr('toB', 'Start', 'B'),
+        { ...tr('go', 'A', 'Done'), guardConfig: guardA },
+        { ...tr('go', 'B', 'Done'), guardConfig: guardB },
+      ],
+    );
+    const { stats } = minimizeFsm(def);
+    expect(stats.minimizedStateCount).toBe(3);
+    expect(Object.keys(stats.mergedStates)).toHaveLength(1);
+  });
+
+  it('merges states whose guardConfigs differ only in errorMessage', () => {
+    // errorMessage is a human-facing annotation and must not affect equivalence.
+    // A and B carry the same access-control guard but with different error
+    // messages — they should still be merged.
+    const def = fsm(
+      ['Start', 'A', 'B', 'Done'],
+      'Start',
+      [
+        tr('toA', 'Start', 'A'),
+        tr('toB', 'Start', 'B'),
+        {
+          ...tr('go', 'A', 'Done'),
+          guardConfig: { guards: [{ guard: { type: 'access-control' as const, role: 'admin' }, operator: 'AND' as const, errorMessage: 'Not admin' }] },
+        },
+        {
+          ...tr('go', 'B', 'Done'),
+          guardConfig: { guards: [{ guard: { type: 'access-control' as const, role: 'admin' }, operator: 'AND' as const, errorMessage: 'Access denied' }] },
+        },
+      ],
+    );
+    const { minimized, stats } = minimizeFsm(def);
+    expect(stats.minimizedStateCount).toBe(3); // Start, rep(A|B), Done
+    expect(Object.keys(stats.mergedStates)).toHaveLength(1);
+    expect(minimized.transitions.filter((t) => t.name === 'go')).toHaveLength(1);
+  });
+
   it('minimizes duplicate transitions even when no states are merged', () => {
     // A and B are distinct states (different guards prevent merging), but both
     // have an identical duplicate transition to Done. The duplicate should be

@@ -74,6 +74,37 @@ function computeDeadStates(
 // ---------------------------------------------------------------------------
 
 /**
+ * JSON.stringify replacer that sorts object keys alphabetically, producing a
+ * stable serialisation regardless of the order in which properties were set.
+ * This is required for guardConfig, whose nested objects may be constructed
+ * in varying property orders across different code paths.
+ */
+function stableReplacer(_key: string, value: unknown): unknown {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)),
+    );
+  }
+  return value;
+}
+
+/**
+ * Returns a normalised copy of a guardConfig with `errorMessage` stripped from
+ * every guard entry. Error messages are human-facing annotations and do not
+ * affect the generated Solidity logic, so two transitions that differ only in
+ * their error messages must still be considered equivalent.
+ */
+function normaliseGuardConfig(
+  guardConfig: FsmTransition['guardConfig'],
+): FsmTransition['guardConfig'] {
+  if (!guardConfig) return undefined;
+  return {
+    ...guardConfig,
+    guards: guardConfig.guards.map(({ errorMessage: _omit, ...rest }) => rest),
+  };
+}
+
+/**
  * Returns a stable string key representing the "semantic body" of a transition
  * — everything that affects the generated Solidity function except the source
  * state (from), the function name, and internal id.
@@ -82,17 +113,27 @@ function computeDeadStates(
  * (modulo the from-state require) and are therefore interchangeable.
  * `to` is intentionally excluded: it is the *target* of δ and is handled by
  * the Hopcroft partition refinement, not the alphabet symbol.
+ *
+ * Both the raw `guard` string and the structured `guardConfig` are included so
+ * that transitions with differing guard conditions are never treated as the
+ * same alphabet symbol and are therefore never incorrectly merged.
+ * `errorMessage` fields inside `guardConfig` are excluded because they are
+ * human-facing annotations that do not affect the generated Solidity logic.
  */
 function transitionBodySignature(t: FsmTransition): string {
-  return JSON.stringify({
-    payable: t.payable ?? false,
-    guard: t.guard ?? '',
-    statementsMode: t.statementsMode ?? 'guided',
-    rawStatements: t.rawStatements ?? '',
-    statements: t.statements ?? [],
-    emitEvent: t.emitEvent ?? '',
-    emitEventArgs: t.emitEventArgs ?? [],
-  });
+  return JSON.stringify(
+    {
+      payable: t.payable ?? false,
+      guard: t.guard ?? '',
+      guardConfig: normaliseGuardConfig(t.guardConfig),
+      statementsMode: t.statementsMode ?? 'guided',
+      rawStatements: t.rawStatements ?? '',
+      statements: t.statements ?? [],
+      emitEvent: t.emitEvent ?? '',
+      emitEventArgs: t.emitEventArgs ?? [],
+    },
+    stableReplacer,
+  );
 }
 
 // ---------------------------------------------------------------------------
