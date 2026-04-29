@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import type { FsmDefinition, FsmConstructorConfig } from '@solidflow/shared';
+import { GuardSelectorComponent } from '../shared/guard-selector.component';
 
 @Component({
   selector: 'app-constructor-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCheckboxModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatCheckboxModule, MatIconModule, GuardSelectorComponent],
   template: `
     <div class="panel">
       <div class="section-header">
@@ -97,6 +98,17 @@ import type { FsmDefinition, FsmConstructorConfig } from '@solidflow/shared';
         </div>
       }
 
+      <div class="constructor-guards-section">
+        <span class="stmt-label">Constructor Guards</span>
+
+        <app-guard-selector
+          [guardConfig]="definition.constructorConfig?.guardConfig"
+          [states]="definition.states"
+          [enabledPlugins]="definition.plugins"
+          (guardConfigChange)="patchConstructorConfig({ guardConfig: $any($event) })"
+        />
+      </div>
+
       @if ((definition.variables ?? []).length === 0 && (definition.customTypes ?? []).length === 0) {
         <p class="empty-hint">No variables or structs defined yet. Add them in the Variables tab.</p>
       }
@@ -156,14 +168,28 @@ export class ConstructorPanelComponent {
       includedVariables: [...(this.definition.constructorConfig?.includedVariables ?? [])],
       includedArrays: [...(this.definition.constructorConfig?.includedArrays ?? [])],
       includedStructs: [...(this.definition.constructorConfig?.includedStructs ?? [])],
-      includedMappings: [...(this.definition.constructorConfig?.includedMappings ?? [])],
+      guardConfig: this.definition.constructorConfig?.guardConfig,
     };
-    const list = category === 'variables' ? cfg.includedVariables
-                : category === 'arrays'   ? cfg.includedArrays
-                :                           cfg.includedStructs;
-    if (checked && !list.includes(name)) list.push(name);
-    if (!checked) { const idx = list.indexOf(name); if (idx >= 0) list.splice(idx, 1); }
-    this.definitionChange.emit({ ...this.definition, constructorConfig: cfg });
+
+    const list = category === 'variables'
+      ? cfg.includedVariables
+      : category === 'arrays'
+        ? cfg.includedArrays
+        : cfg.includedStructs;
+
+    if (checked && !list.includes(name)) {
+      list.push(name);
+    }
+
+    if (!checked) {
+      const idx = list.indexOf(name);
+      if (idx >= 0) list.splice(idx, 1);
+    }
+
+    this.definitionChange.emit({
+      ...this.definition,
+      constructorConfig: cfg,
+    });
   }
 
   constructorPreview(): string {
@@ -198,5 +224,23 @@ export class ConstructorPanelComponent {
       `    }`,
     ];
     return lines.join('\n');
+  }
+
+  patchConstructorConfig(
+    partial: Partial<NonNullable<FsmDefinition['constructorConfig']>>
+  ): void {
+    const current = this.definition.constructorConfig ?? {
+      includedVariables: [],
+      includedArrays: [],
+      includedStructs: [],
+    };
+
+    this.definitionChange.emit({
+      ...this.definition,
+      constructorConfig: {
+        ...current,
+        ...partial,
+      },
+    });
   }
 }

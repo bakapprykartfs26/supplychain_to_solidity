@@ -45,7 +45,7 @@ export interface FsmConstructorConfig {
   includedVariables: string[]; // names of variables to include as params
   includedArrays: string[];    // names of array variables to include
   includedStructs: string[];   // names of struct variables to include
-  includedMappings: string[];  // names of mappings to include as params
+  guardConfig?: FsmGuardConfig;
 }
 
 export interface FsmTransitionInput {

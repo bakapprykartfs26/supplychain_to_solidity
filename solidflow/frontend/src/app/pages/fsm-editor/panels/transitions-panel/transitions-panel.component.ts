@@ -12,7 +12,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { FsmTransitionInput, FsmDefinition, FsmTransition } from '@solidflow/shared';
 import { randomUUID } from '../../canvas/uuid';
 import { StatementListComponent } from './statement-list.component';
-import { GuardSelectorComponent } from './guard-selector.component';
+import { GuardSelectorComponent } from '../shared/guard-selector.component';
 import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
 import { ArrayEditorComponent } from '../../../../shared/array-editor.component';
 

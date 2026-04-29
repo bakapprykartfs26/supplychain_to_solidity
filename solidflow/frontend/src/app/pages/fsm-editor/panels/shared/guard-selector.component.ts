@@ -100,16 +100,13 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                 @for (g of guardsByCategory(cat); track g.type) {
                   <button
                     class="guard-chip"
-                    [class.active]="isAdded(g.type)"
                     [style.--chip-color]="categoryColor(cat)"
                     [matTooltip]="g.description"
-                    (click)="toggleGuard(g.type)"
+                    (click)="addGuard(g.type)"
                   >
                     <mat-icon class="chip-icon">{{ g.icon }}</mat-icon>
                     <span class="chip-label">{{ g.label }}</span>
-                    @if (isAdded(g.type)) {
-                      <mat-icon class="chip-check">check</mat-icon>
-                    }
+                    <mat-icon class="chip-add">add</mat-icon>
                   </button>
                 }
               </div>
@@ -122,7 +119,7 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
       @if (activeGuards.length) {
         <div class="active-list">
           <div class="active-header">Active Guards</div>
-          @for (entry of activeGuards; track entry.guard.type; let i = $index) {
+          @for (entry of activeGuards; track $index; let i = $index) {
             <div class="active-item">
               <div class="active-item-header">
                 <div class="active-item-title">
@@ -370,7 +367,9 @@ export class GuardSelectorComponent {
   }
 
   activeCountByCategory(cat: string): number {
-    return this.guardsByCategory(cat).filter((g) => this.isAdded(g.type)).length;
+    return this.activeGuards.filter((entry) =>
+      this.categoryOf(entry.guard.type) === cat
+    ).length;
   }
 
   guardsByCategory(cat: string): GuardMeta[] {
@@ -401,21 +400,21 @@ export class GuardSelectorComponent {
     return this.activeGuards.some((e) => e.guard.type === type);
   }
 
-  toggleGuard(type: FsmGuard['type']): void {
+  addGuard(type: FsmGuard['type']): void {
     if (type === 'pause' && !this.enabledPlugins?.transitionPause) {
       return;
     }
-    
-    if (this.isAdded(type)) {
-      const guards = this.activeGuards.filter((e) => e.guard.type !== type);
-      this.emit(guards);
-    } else {
-      const guards = [
-        ...this.activeGuards,
-        { guard: defaultGuard(type), operator: 'AND' as GuardOperator, errorMessage: '' }
-      ];
-      this.emit(guards);
-    }
+
+    const guards: FsmGuardConfig['guards'] = [
+      ...this.activeGuards,
+      {
+        guard: defaultGuard(type),
+        operator: 'AND',
+        errorMessage: '',
+      },
+    ];
+
+    this.emit(guards);
   }
 
   setOperator(index: number, operator: GuardOperator): void {

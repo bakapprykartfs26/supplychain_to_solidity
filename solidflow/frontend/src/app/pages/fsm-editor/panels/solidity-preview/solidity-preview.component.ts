@@ -169,9 +169,15 @@ export class SolidityPreviewComponent implements OnChanges {
     lines.push('');
 
     // Pre-compute cross-cutting concerns needed for declarations and constructor
+    const allGuardEntries = [
+      ...def.transitions.flatMap(t => t.guardConfig?.guards ?? []),
+      ...(def.constructorConfig?.guardConfig?.guards ?? []),
+    ];
+
     const guardTypes = new Set(
-      def.transitions.flatMap(t => t.guardConfig?.guards?.map(g => g.guard.type) ?? [])
+      allGuardEntries.map((entry) => entry.guard.type)
     );
+    
     const accessControlRoles = new Set(
       def.transitions.flatMap(t =>
         t.guardConfig?.guards
@@ -337,6 +343,14 @@ export class SolidityPreviewComponent implements OnChanges {
       ? '\n        ' + ctorParams.join(',\n        ') + '\n    '
       : '';
     lines.push(`    constructor(${paramStr}) {`);
+
+    this.emitGuardRequires(
+      lines,
+      def.constructorConfig?.guardConfig,
+      '        ',
+      { skipPause: true }
+    );
+
     for (const stmt of ctorBody) lines.push(stmt);
     lines.push('    }');
     lines.push('');
@@ -366,18 +380,9 @@ export class SolidityPreviewComponent implements OnChanges {
         lines.push(`        require(!paused[${transitionIndex}], "Transition paused");`);
       }
 
-      const nonPauseGuards = (t.guardConfig?.guards ?? []).filter(
-        (entry) => entry.guard.type !== 'pause'
-      );
-
-      if (nonPauseGuards.length) {
-        nonPauseGuards.forEach((entry, i) => {
-          const expr = this.guardToExpression(entry.guard);
-          const op = i < nonPauseGuards.length - 1 ? ` // ${entry.operator}` : '';
-          const errMsg = entry.errorMessage?.trim() || `${entry.guard.type} check failed`;
-          lines.push(`        require(${expr}, "${errMsg}");${op}`);
-        });
-      }
+      this.emitGuardRequires(lines, t.guardConfig, '        ', {
+        skipPause: true,
+      });
 
       if (t.guard) {
         lines.push(`        require(${t.guard}, "Guard condition failed");`);
@@ -424,6 +429,43 @@ export class SolidityPreviewComponent implements OnChanges {
     return !!t.guardConfig?.guards?.some((entry) => entry.guard.type === 'pause');
   }
 
+  private emitGuardRequires(
+    lines: string[],
+    guardConfig: import('@solidflow/shared').FsmGuardConfig | undefined,
+    indent = '        ',
+    options?: {
+      skipPause?: boolean;
+    },
+  ): void {
+    const guards = guardConfig?.guards ?? [];
+
+    const filteredGuards = options?.skipPause
+      ? guards.filter((entry) => entry.guard.type !== 'pause')
+      : guards;
+
+    if (filteredGuards.length === 0) {
+      return;
+    }
+
+    const parts = filteredGuards.map((entry, i) => {
+      const expr = `(${this.guardToExpression(entry.guard)})`;
+
+      if (i === filteredGuards.length - 1) {
+        return expr;
+      }
+
+      const op = entry.operator === 'OR' ? '||' : '&&';
+      return `${expr} ${op}`;
+    });
+
+    const combinedExpression = parts.join(' ');
+    const errMsg =
+      filteredGuards.find((entry) => entry.errorMessage?.trim())?.errorMessage?.trim()
+      ?? 'Guard condition failed';
+
+    lines.push(`${indent}require(${combinedExpression}, "${errMsg}");`);
+  }
+
   private guardToExpression(guard: import('@solidflow/shared').FsmGuard): string {
     switch (guard.type) {
       case 'access-control':     return `msg.sender == ${guard.role === 'owner' ? 'owner' : guard.role}`;
@@ -433,7 +475,7 @@ export class SolidityPreviewComponent implements OnChanges {
       case 'postcondition':      return guard.expression;
       case 'event-emission':     return `true /* emit ${guard.eventName} */`;
       case 'return-value':       return guard.expression;
-      case 'reentrancy':         return `!locked`;
+      case 'reentrancy':         return `!_locked`;
       case 'deadline':           return `block.timestamp <= ${guard.timestamp}`;
       case 'timelock':           return `block.timestamp >= lastCall + ${guard.delay}`;
       case 'cooldown':           return `block.timestamp >= lastCall + ${guard.interval}`;

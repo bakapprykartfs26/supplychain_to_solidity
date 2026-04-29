@@ -208,7 +208,27 @@ export const FSM_JSON_SCHEMA = {
         includedVariables: { type: 'array', items: { type: 'string' } },
         includedArrays:    { type: 'array', items: { type: 'string' } },
         includedStructs:   { type: 'array', items: { type: 'string' } },
-        includedMappings:  { type: 'array', items: { type: 'string' } },
+
+        guardConfig: {
+          type: 'object',
+          properties: {
+            guards: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  guard:        { type: 'object' },
+                  operator:     { type: 'string', enum: ['AND', 'OR'] },
+                  errorMessage: { type: 'string' },
+                },
+                required: ['guard', 'operator'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['guards'],
+          additionalProperties: false,
+        },
       },
       required: ['includedVariables', 'includedArrays', 'includedStructs'],
       additionalProperties: false,

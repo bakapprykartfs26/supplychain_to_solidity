@@ -258,9 +258,9 @@ export class FsmConstructorConfigDto {
   includedStructs!: string[];
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  includedMappings?: string[];
+  @ValidateNested()
+  @Type(() => FsmGuardConfigDto)
+  guardConfig?: FsmGuardConfigDto;
 }
 
 // ── Create ────────────────────────────────────────────────────────────────────
