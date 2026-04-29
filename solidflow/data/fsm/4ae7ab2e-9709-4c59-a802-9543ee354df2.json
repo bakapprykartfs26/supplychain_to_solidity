@@ -1,27 +1,22 @@
 {
-  "name": "Lottery",
+  "name": "Lottery v2",
   "states": [
-    "Buy Stage",
-    "Reveal Stage"
+    "Buy",
+    "Reveal"
   ],
-  "initialState": "Buy Stage",
+  "initialState": "Buy",
   "transitions": [
     {
-      "id": "fd357a15-7af4-4c8f-8734-bb134a5c9b71",
+      "id": "41e0c9be-7ca0-428d-af19-9ef4cd62cda8",
       "name": "buyTicket",
-      "from": "Buy Stage",
-      "to": "Buy Stage",
+      "from": "Buy",
+      "to": "Buy",
       "payable": true,
       "inputs": [
         {
           "type": "bytes32",
           "name": "secret"
         }
-      ],
-      "emitEvent": "TicketSold",
-      "emitEventArgs": [
-        "msg.sender",
-        "jackpot"
       ],
       "guardConfig": {
         "guards": [
@@ -54,13 +49,18 @@
       "statements": [
         "secrets[msg.sender] = secret;",
         "jackpot += msg.value;"
+      ],
+      "emitEvent": "TicketSold",
+      "emitEventArgs": [
+        "msg.sender",
+        "jackpot"
       ]
     },
     {
-      "id": "2816716c-4711-4e60-9fb8-3eba0a1e425f",
+      "id": "2790223e-9342-4611-94a7-097c1ca3c0b4",
       "name": "switchToReveal",
-      "from": "Buy Stage",
-      "to": "Reveal Stage",
+      "from": "Buy",
+      "to": "Reveal",
       "guardConfig": {
         "guards": [
           {
@@ -75,25 +75,19 @@
       }
     },
     {
-      "id": "9f19ff38-d28d-4cdf-8246-ee6effd1126d",
+      "id": "63bc83cc-150e-4628-94c9-cf4fb6b859b8",
       "name": "revealSecret",
-      "from": "Reveal Stage",
-      "to": "Reveal Stage",
-      "inputs": [
-        {
-          "type": "uint256",
-          "name": "secretNumber"
-        }
-      ],
+      "from": "Reveal",
+      "to": "Reveal",
       "guardConfig": {
         "guards": [
           {
             "guard": {
               "type": "input-validation",
-              "expression": "1 == 1"
+              "expression": "secrets[msg.sender] != bytes32(0)"
             },
             "operator": "AND",
-            "errorMessage": "secrets[msg.sender] != bytes32(0)"
+            "errorMessage": "No secret to reveal"
           },
           {
             "guard": {
@@ -109,13 +103,19 @@
         "secrets[msg.sender] = bytes32(0);",
         "players.push(msg.sender);",
         "randomNumber = uint(keccak256(abi.encodePacked(randomNumber, secretNumber)));"
+      ],
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "secretNumber"
+        }
       ]
     },
     {
-      "id": "335468b6-c807-4eca-bbd5-ac3a58385204",
+      "id": "514823e1-b3a4-4dd8-b0db-80dcf5334829",
       "name": "evaluate",
-      "from": "Reveal Stage",
-      "to": "Buy Stage",
+      "from": "Reveal",
+      "to": "Buy",
       "guardConfig": {
         "guards": [
           {
@@ -145,15 +145,14 @@
         "delete players;",
         "deadlineBuy = block.timestamp + buyStageDuration;",
         "deadlineReveal = deadlineBuy + revealStageDuration;",
-        "randomNumber = 0;",
-        "currentState = State.Buy_Stage;"
+        "randomNumber = 0;"
       ]
     },
     {
-      "id": "2bffc5c4-af3d-4762-8e04-5c794ec0c6f0",
-      "name": "collect",
-      "from": "Reveal Stage",
-      "to": "Reveal Stage",
+      "id": "b60a1075-36de-44cb-8bad-443d5131beb9",
+      "name": "bCollect",
+      "from": "Buy",
+      "to": "Buy",
       "guardConfig": {
         "guards": [
           {
@@ -173,10 +172,15 @@
       ]
     },
     {
-      "id": "ddf19262-bc6e-419d-ad83-4a9db9706e47",
-      "name": "collect2",
-      "from": "Buy Stage",
-      "to": "Buy Stage",
+      "id": "7d3a216f-126f-4c7c-863f-ebe53c3bfd96",
+      "name": "rCollect",
+      "from": "Reveal",
+      "to": "Reveal",
+      "statements": [
+        "uint amount = winners[msg.sender];",
+        "winners[msg.sender] = 0;",
+        "payable(msg.sender).transfer(amount);"
+      ],
       "guardConfig": {
         "guards": [
           {
@@ -188,17 +192,12 @@
             "errorMessage": "Nothing to collect"
           }
         ]
-      },
-      "statements": [
-        "uint amount = winners[msg.sender];",
-        "winners[msg.sender] = 0;",
-        "payable(msg.sender).transfer(amount);"
-      ]
+      }
     }
   ],
-  "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
-  "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-29T12:33:24.337Z",
+  "id": "4ae7ab2e-9709-4c59-a802-9543ee354df2",
+  "createdAt": "2026-04-29T12:10:04.038Z",
+  "updatedAt": "2026-04-29T12:42:28.037Z",
   "variables": [
     {
       "name": "players",
@@ -219,9 +218,7 @@
     {
       "name": "revealStageDuration",
       "type": "uint256",
-      "visibility": "public",
-      "isArray": false,
-      "dimensions": []
+      "visibility": "public"
     },
     {
       "name": "deadlineBuy",
@@ -248,6 +245,20 @@
     {
       "name": "randomNumber",
       "type": "uint256",
+      "visibility": "public"
+    }
+  ],
+  "mappings": [
+    {
+      "name": "secrets",
+      "keyType": "address",
+      "valueType": "bytes32",
+      "visibility": "public"
+    },
+    {
+      "name": "winners",
+      "keyType": "address",
+      "valueType": "uint256",
       "visibility": "public"
     }
   ],
@@ -281,7 +292,9 @@
       ]
     }
   ],
-  "customTypes": [],
+  "plugins": {
+    "event": true
+  },
   "constructorConfig": {
     "includedVariables": [
       "buyStageDuration",
@@ -289,23 +302,18 @@
       "ticketPrice"
     ],
     "includedArrays": [],
-    "includedStructs": []
-  },
-  "mappings": [
-    {
-      "name": "secrets",
-      "keyType": "address",
-      "valueType": "bytes32",
-      "visibility": "public"
-    },
-    {
-      "name": "winners",
-      "keyType": "address",
-      "valueType": "uint256",
-      "visibility": "public"
+    "includedStructs": [],
+    "guardConfig": {
+      "guards": [
+        {
+          "guard": {
+            "type": "input-validation",
+            "expression": "_ticketPrice > 0"
+          },
+          "operator": "AND",
+          "errorMessage": "Ticket price must be positive"
+        }
+      ]
     }
-  ],
-  "plugins": {
-    "event": true
   }
 }
