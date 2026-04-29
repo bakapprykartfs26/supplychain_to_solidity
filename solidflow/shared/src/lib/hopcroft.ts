@@ -321,7 +321,8 @@ export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
   const nothingChanged =
     removedUnreachable.length === 0 &&
     removedDead.length === 0 &&
-    Object.keys(mergedStates).length === 0;
+    Object.keys(mergedStates).length === 0 &&
+    minimized.transitions.length === originalTransitionCount;
 
   return {
     minimized,

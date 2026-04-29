@@ -205,4 +205,28 @@ describe('minimizeFsm', () => {
     expect(stats.mergedStates).toEqual({});
     expect(stats.minimizedStateCount).toBe(4);
   });
+
+  it('minimizes duplicate transitions even when no states are merged', () => {
+    // A and B are distinct states (different guards prevent merging), but both
+    // have an identical duplicate transition to Done. The duplicate should be
+    // removed and alreadyMinimal must be false even though no states changed.
+    const def = fsm(
+      ['Start', 'A', 'Done'],
+      'Start',
+      [
+        tr('toA', 'Start', 'A'),
+        // Two identical transitions from A to Done — one is a duplicate
+        { ...tr('go', 'A', 'Done'), id: 'go-1' },
+        { ...tr('go', 'A', 'Done'), id: 'go-2' },
+      ],
+    );
+    const { minimized, stats } = minimizeFsm(def);
+    expect(stats.mergedStates).toEqual({});
+    expect(stats.minimizedStateCount).toBe(3); // no states removed
+    expect(stats.minimizedTransitionCount).toBe(2); // duplicate dropped
+    expect(stats.originalTransitionCount).toBe(3);
+    expect(stats.alreadyMinimal).toBe(false);
+    const goTransitions = minimized.transitions.filter((t) => t.name === 'go');
+    expect(goTransitions).toHaveLength(1);
+  });
 });
