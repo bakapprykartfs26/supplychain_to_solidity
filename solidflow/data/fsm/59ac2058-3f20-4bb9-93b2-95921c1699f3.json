@@ -136,30 +136,69 @@
             "uint numberOfPlayers = players.length;",
             "uint winnerIndex = randomNumber % numberOfPlayers;",
             "address winner = players[winnerIndex];",
-            "/// winners[winner] += jackpot;",
+            "winners[winner] += jackpot;",
             "emit WinnerSelected(winner, jackpot);",
             "jackpot = 0;"
           ],
           "elseIfs": []
-        }
+        },
+        "delete players;",
+        "deadlineBuy = block.timestamp + buyStageDuration;",
+        "deadlineReveal = deadlineBuy + revealStageDuration;",
+        "randomNumber = 0;",
+        "currentState = State.Buy_Stage;"
       ]
     },
     {
       "id": "2bffc5c4-af3d-4762-8e04-5c794ec0c6f0",
       "name": "collect",
       "from": "Reveal Stage",
-      "to": "Reveal Stage"
+      "to": "Reveal Stage",
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "winners[msg.sender] > 0"
+            },
+            "operator": "AND",
+            "errorMessage": "Nothing to collect"
+          }
+        ]
+      },
+      "statements": [
+        "uint amount = winners[msg.sender];",
+        "winners[msg.sender] = 0;",
+        "payable(msg.sender).transfer(amount);"
+      ]
     },
     {
       "id": "ddf19262-bc6e-419d-ad83-4a9db9706e47",
       "name": "collect2",
       "from": "Buy Stage",
-      "to": "Buy Stage"
+      "to": "Buy Stage",
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "winners[msg.sender] > 0"
+            },
+            "operator": "AND",
+            "errorMessage": "Nothing to collect"
+          }
+        ]
+      },
+      "statements": [
+        "uint amount = winners[msg.sender];",
+        "winners[msg.sender] = 0;",
+        "payable(msg.sender).transfer(amount);"
+      ]
     }
   ],
   "id": "59ac2058-3f20-4bb9-93b2-95921c1699f3",
   "createdAt": "2026-04-09T12:05:32.010Z",
-  "updatedAt": "2026-04-29T09:47:10.283Z",
+  "updatedAt": "2026-04-29T09:52:16.045Z",
   "variables": [
     {
       "name": "players",
