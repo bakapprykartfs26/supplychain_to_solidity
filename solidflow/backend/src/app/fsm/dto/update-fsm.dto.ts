@@ -1,6 +1,6 @@
 import { IsArray, IsBoolean, IsIn, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FsmConstructorConfigDto, FsmTransitionDto, FsmContractVariableDto, FsmCustomTypeDto, FsmEventDto, FsmPluginsDto } from './create-fsm.dto';
+import { FsmConstructorConfigDto, FsmTransitionDto, FsmContractVariableDto, FsmCustomTypeDto, FsmEventDto, FsmPluginsDto, FsmMappingDto } from './create-fsm.dto';
 
 export class UpdateFsmDto {
   @IsOptional()
@@ -40,6 +40,12 @@ export class UpdateFsmDto {
   @ValidateNested({ each: true })
   @Type(() => FsmCustomTypeDto)
   customTypes?: FsmCustomTypeDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FsmMappingDto)
+  mappings?: FsmMappingDto[];
 
   @IsOptional()
   @IsArray()

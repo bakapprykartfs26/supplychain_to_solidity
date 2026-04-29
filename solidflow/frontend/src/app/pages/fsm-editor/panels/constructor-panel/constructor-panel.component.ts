@@ -156,6 +156,7 @@ export class ConstructorPanelComponent {
       includedVariables: [...(this.definition.constructorConfig?.includedVariables ?? [])],
       includedArrays: [...(this.definition.constructorConfig?.includedArrays ?? [])],
       includedStructs: [...(this.definition.constructorConfig?.includedStructs ?? [])],
+      includedMappings: [...(this.definition.constructorConfig?.includedMappings ?? [])],
     };
     const list = category === 'variables' ? cfg.includedVariables
                 : category === 'arrays'   ? cfg.includedArrays
@@ -187,6 +188,7 @@ export class ConstructorPanelComponent {
       const ct = (this.definition.customTypes ?? []).find(x => x.name === name);
       if (ct) { params.push(`${ct.name} memory _${ct.name.toLowerCase()}`); assigns.push(`        ${ct.name.toLowerCase()} = _${ct.name.toLowerCase()};`); }
     }
+
 
     const paramStr = params.join(',\n        ');
     const lines = [

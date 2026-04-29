@@ -34,10 +34,18 @@ export interface FsmConstructorParam {
   include: boolean;
 }
 
+export interface FsmMapping {
+  name: string;
+  keyType: string;
+  valueType: string;
+  visibility?: 'public' | 'private' | 'internal';
+}
+
 export interface FsmConstructorConfig {
   includedVariables: string[]; // names of variables to include as params
   includedArrays: string[];    // names of array variables to include
   includedStructs: string[];   // names of struct variables to include
+  includedMappings: string[];  // names of mappings to include as params
 }
 
 export interface FsmTransitionInput {
@@ -98,6 +106,7 @@ export interface FsmDefinition {
   transitions: FsmTransition[];
   variables?: FsmContractVariable[];
   customTypes?: FsmCustomType[];
+  mappings?: FsmMapping[];
   events?: FsmEvent[];
   plugins?: FsmPlugins;
   constructorConfig?: FsmConstructorConfig;

@@ -10,7 +10,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { SOLIDITY_TYPES } from '../../../../shared/solidity-types';
 import { ArrayEditorComponent } from '../../../../shared/array-editor.component';
 import { buildTypeString } from '../../../../shared/solidity-types';
-import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
+import type { FsmDefinition, FsmContractVariable, FsmMapping } from '@solidflow/shared';
 
 @Component({
   selector: 'app-variables-panel',
@@ -137,6 +137,60 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
         <mat-icon>add</mat-icon>
         Add Struct
       </button>
+
+      <div class="section-header mappings-header">
+        <mat-icon class="section-icon">device_hub</mat-icon>
+        <span class="section-title">Mappings</span>
+        <span class="count">{{ (definition.mappings ?? []).length }}</span>
+      </div>
+
+      @for (m of definition.mappings ?? []; track mi; let mi = $index) {
+        <div class="var-card">
+          <div class="var-row-top">
+            
+            <mat-form-field appearance="fill" class="map-vis">
+              <mat-label>Visibility</mat-label>
+              <mat-select [ngModel]="m.visibility ?? 'public'" (ngModelChange)="patchMapping(mi, { visibility: $event })">
+                <mat-option value="public">public</mat-option>
+                <mat-option value="private">private</mat-option>
+                <mat-option value="internal">internal</mat-option>
+              </mat-select>
+            </mat-form-field>
+          
+            <mat-form-field appearance="fill" class="map-key-type">
+              <mat-label>Key type</mat-label>
+              <mat-select [ngModel]="m.keyType" (ngModelChange)="patchMapping(mi, { keyType: $event })">
+                @for (type of getMappingKeyTypes(); track type) {
+                  <mat-option [value]="type">{{ type }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" class="map-val-type">
+              <mat-label>Value type</mat-label>
+              <mat-select [ngModel]="m.valueType" (ngModelChange)="patchMapping(mi, { valueType: $event })">
+                @for (type of getMappingValueTypes(); track type) {
+                  <mat-option [value]="type">{{ type }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" class="var-name">
+              <mat-label>Name</mat-label>
+              <input matInput [ngModel]="m.name" (ngModelChange)="patchMapping(mi, { name: $event })" spellcheck="false" class="mono" />
+            </mat-form-field>
+
+            <button mat-icon-button class="sf-icon-btn-danger" (click)="removeMapping(mi)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+
+      <button mat-stroked-button class="add-btn" (click)="addMapping()">
+        <mat-icon>add</mat-icon>
+        Add Mapping
+      </button>
     </div>
   `,
   styles: [`
@@ -167,6 +221,10 @@ import type { FsmDefinition, FsmContractVariable } from '@solidflow/shared';
     .struct-actions { display: flex; justify-content: space-between; margin-top: 0.25rem; }
     .add-field-btn { color: var(--sf-primary) !important; font-size: 0.8rem; }
     .rm-struct-btn { color: var(--sf-error) !important; font-size: 0.8rem; }
+    .mappings-header { margin-top: 1.5rem; }
+    .map-key-type { flex: 0 0 140px; }
+    .map-val-type { flex: 0 0 140px; }
+    .map-vis { flex: 0 0 110px; }
   `],
 })
 export class VariablesPanelComponent {
@@ -224,6 +282,36 @@ export class VariablesPanelComponent {
     const customTypes = (this.definition.customTypes ?? []).map((ct, i) =>
       i === ci ? { ...ct, fields: ct.fields.map((f, j) => j === fi ? { ...f, [key]: value } : f) } : ct);
     this.definitionChange.emit({ ...this.definition, customTypes });
+  }
+
+  getMappingKeyTypes(): string[] {
+    // Only primitive types are valid mapping keys in Solidity
+    return this.solidityTypes.filter(t => t !== 'string' && t !== 'bytes');
+  }
+
+  getMappingValueTypes(): string[] {
+    const customTypeNames = (this.definition.customTypes ?? []).map((ct) => ct.name);
+    return [...this.solidityTypes, ...customTypeNames];
+  }
+
+  addMapping(): void {
+    const m: FsmMapping = {
+      name: `mapping${(this.definition.mappings ?? []).length + 1}`,
+      keyType: 'address',
+      valueType: 'uint256',
+      visibility: 'public',
+    };
+    this.definitionChange.emit({ ...this.definition, mappings: [...(this.definition.mappings ?? []), m] });
+  }
+
+  patchMapping(mi: number, partial: Partial<FsmMapping>): void {
+    const mappings = (this.definition.mappings ?? []).map((m, idx) => idx === mi ? { ...m, ...partial } : m);
+    this.definitionChange.emit({ ...this.definition, mappings });
+  }
+
+  removeMapping(mi: number): void {
+    const mappings = (this.definition.mappings ?? []).filter((_, idx) => idx !== mi);
+    this.definitionChange.emit({ ...this.definition, mappings });
   }
 
   removeTypeField(ci: number, fi: number): void {

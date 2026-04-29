@@ -142,6 +142,20 @@ export const FSM_JSON_SCHEMA = {
         additionalProperties: false,
       },
     },
+    mappings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name:       { type: 'string', minLength: 1 },
+          keyType:    { type: 'string', minLength: 1 },
+          valueType:  { type: 'string', minLength: 1 },
+          visibility: { type: 'string', enum: ['public', 'private', 'internal'] },
+        },
+        required: ['name', 'keyType', 'valueType'],
+        additionalProperties: false,
+      },
+    },
     events: {
       type: 'array',
       items: {
@@ -194,6 +208,7 @@ export const FSM_JSON_SCHEMA = {
         includedVariables: { type: 'array', items: { type: 'string' } },
         includedArrays:    { type: 'array', items: { type: 'string' } },
         includedStructs:   { type: 'array', items: { type: 'string' } },
+        includedMappings:  { type: 'array', items: { type: 'string' } },
       },
       required: ['includedVariables', 'includedArrays', 'includedStructs'],
       additionalProperties: false,

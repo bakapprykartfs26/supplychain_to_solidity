@@ -288,6 +288,13 @@ export class SolidityPreviewComponent implements OnChanges {
     }
     if ((def.variables ?? []).length > 0) lines.push('');
 
+    // Mappings
+    for (const m of def.mappings ?? []) {
+      const vis = m.visibility ?? 'public';
+      lines.push(`    mapping(${m.keyType} => ${m.valueType}) ${vis} ${m.name};`);
+    }
+    if ((def.mappings ?? []).length > 0) lines.push('');
+
     // ── Unified constructor (always exactly one) ──────────────────────────
     const cfg = def.constructorConfig;
     const ctorParams: string[] = [];

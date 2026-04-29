@@ -139,6 +139,25 @@ export class FsmContractVariableDto {
   dimensions?: ArrayDimensionDto[];
 }
 
+// ── Mapping ───────────────────────────────────────────────────────────────────
+export class FsmMappingDto {
+  @IsString()
+  @MinLength(1)
+  name!: string;
+
+  @IsString()
+  @MinLength(1)
+  keyType!: string;
+
+  @IsString()
+  @MinLength(1)
+  valueType!: string;
+
+  @IsOptional()
+  @IsIn(['public', 'private', 'internal'])
+  visibility?: 'public' | 'private' | 'internal';
+}
+
 // ── Custom type ───────────────────────────────────────────────────────────────
 export class FsmCustomTypeFieldDto {
   @IsString()
@@ -237,6 +256,11 @@ export class FsmConstructorConfigDto {
   @IsArray()
   @IsString({ each: true })
   includedStructs!: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  includedMappings?: string[];
 }
 
 // ── Create ────────────────────────────────────────────────────────────────────
@@ -269,6 +293,12 @@ export class CreateFsmDto {
   @ValidateNested({ each: true })
   @Type(() => FsmCustomTypeDto)
   customTypes?: FsmCustomTypeDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FsmMappingDto)
+  mappings?: FsmMappingDto[];
 
   @IsOptional()
   @IsArray()
