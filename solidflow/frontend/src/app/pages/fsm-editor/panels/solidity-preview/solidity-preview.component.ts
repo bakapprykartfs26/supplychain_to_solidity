@@ -402,6 +402,8 @@ export class SolidityPreviewComponent implements OnChanges {
       if (def.plugins?.transitionCounter) {
         lines.push('        transitionCount++;');
       }
+      lines.push(`        currentState = ${toState};`);
+
       if (def.plugins?.event || t.emitEvent === true as unknown as string) {
         lines.push(`        emit StateChanged(${toState});`);
       }
@@ -415,8 +417,7 @@ export class SolidityPreviewComponent implements OnChanges {
           lines.push(`        emit ${this.toIdentifier(t.emitEvent)}(${args});`);
         }
       }
-
-      lines.push(`        currentState = ${toState};`);
+      
       lines.push('    }');
       lines.push('');
     }
