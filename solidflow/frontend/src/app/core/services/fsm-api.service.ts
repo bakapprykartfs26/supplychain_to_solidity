@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import type { FsmDefinition } from '@solidflow/shared';
+import type { FsmDefinition, FsmMinimizationResult } from '@solidflow/shared';
 
 export interface CompileResult {
   success: boolean;
@@ -33,6 +33,10 @@ export class FsmApiService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  minimize(id: string): Observable<FsmMinimizationResult> {
+    return this.http.get<FsmMinimizationResult>(`${this.base}/${id}/minimize`);
   }
 
   compileById(id: string): Observable<CompileResult> {

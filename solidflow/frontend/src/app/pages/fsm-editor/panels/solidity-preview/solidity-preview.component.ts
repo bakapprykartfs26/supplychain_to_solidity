@@ -163,9 +163,27 @@ export class SolidityPreviewComponent implements OnChanges {
     lines.push('    }');
     lines.push('');
 
-    // Current state
+    // Current state + createdAt (always present)
     lines.push(`    State public currentState = State.${this.toIdentifier(def.initialState)};`);
+    lines.push('    uint256 public createdAt;');
     lines.push('');
+
+    // Pre-compute cross-cutting concerns needed for declarations and constructor
+    const guardTypes = new Set(
+      def.transitions.flatMap(t => t.guardConfig?.guards?.map(g => g.guard.type) ?? [])
+    );
+    const accessControlRoles = new Set(
+      def.transitions.flatMap(t =>
+        t.guardConfig?.guards
+          ?.filter(g => g.guard.type === 'access-control')
+          .map(g => (g.guard as import('@solidflow/shared').AccessControlGuard).role) ?? []
+      )
+    );
+    const usesTransitionPause =
+      !!def.plugins?.transitionPause &&
+      def.transitions.some(t => this.hasPauseGuard(t));
+    // owner is needed when accessControl plugin is active OR when transitionPause needs it
+    const needsOwner = !!def.plugins?.accessControl || usesTransitionPause;
 
     // Plugin: locking
     if (def.plugins?.locking) {
@@ -180,17 +198,13 @@ export class SolidityPreviewComponent implements OnChanges {
       lines.push('');
     }
 
-    // Plugin: accessControl
+    // Plugin: accessControl — variable + modifier only (no constructor here)
     if (def.plugins?.accessControl) {
       lines.push('    address public owner;');
       lines.push('');
       lines.push('    modifier onlyOwner() {');
       lines.push('        require(msg.sender == owner, "Not owner");');
       lines.push('        _;');
-      lines.push('    }');
-      lines.push('');
-      lines.push('    constructor() {');
-      lines.push('        owner = msg.sender;');
       lines.push('    }');
       lines.push('');
     }
@@ -207,7 +221,7 @@ export class SolidityPreviewComponent implements OnChanges {
       lines.push('');
     }
 
-    // Plugin: event (or any transition with legacy boolean emitEvent)
+    // Plugin: event
     if (def.plugins?.event || def.transitions.some(t => t.emitEvent === true as unknown as string)) {
       lines.push('    event StateChanged(State newState);');
       lines.push('');
@@ -222,36 +236,15 @@ export class SolidityPreviewComponent implements OnChanges {
     }
     if ((def.events ?? []).length > 0) lines.push('');
 
-
-    // Auto-declare state variables needed by guards
-    const guardTypes = new Set(
-      def.transitions.flatMap(t => t.guardConfig?.guards?.map(g => g.guard.type) ?? [])
-    );
-
+    // access-control guard roles (declarations only, no constructor)
     if (guardTypes.has('access-control') && !def.plugins?.accessControl) {
-      const roles = new Set(
-        def.transitions.flatMap(t =>
-          t.guardConfig?.guards
-            ?.filter(g => g.guard.type === 'access-control')
-            .map(g => (g.guard as import('@solidflow/shared').AccessControlGuard).role) ?? []
-        )
-      );
-      for (const role of roles) {
+      for (const role of accessControlRoles) {
         lines.push(`    address public ${role};`);
       }
-      lines.push('');
-      lines.push('    constructor() {');
-      for (const role of roles) {
-        lines.push(`        ${role} = msg.sender;`);
-      }
-      lines.push('    }');
-      lines.push('');
+      if (accessControlRoles.size > 0) lines.push('');
     }
 
-    const usesTransitionPause =
-      !!def.plugins?.transitionPause &&
-      def.transitions.some((t) => this.hasPauseGuard(t));
-
+    // transitionPause: paused array + owner/modifier if not already from accessControl plugin
     if (usesTransitionPause) {
       lines.push(`    bool[${def.transitions.length}] public paused;`);
       lines.push('');
@@ -262,10 +255,6 @@ export class SolidityPreviewComponent implements OnChanges {
         lines.push('    modifier onlyOwner() {');
         lines.push('        require(msg.sender == owner, "Not owner");');
         lines.push('        _;');
-        lines.push('    }');
-        lines.push('');
-        lines.push('    constructor() {');
-        lines.push('        owner = msg.sender;');
         lines.push('    }');
         lines.push('');
       }
@@ -299,34 +288,41 @@ export class SolidityPreviewComponent implements OnChanges {
     }
     if ((def.variables ?? []).length > 0) lines.push('');
 
-    // createdAt timestamp variable
-    lines.push('    uint256 public createdAt;');
-    lines.push('');
-
-    // Constructor
+    // ── Unified constructor (always exactly one) ──────────────────────────
     const cfg = def.constructorConfig;
     const ctorParams: string[] = [];
-    const ctorAssigns: string[] = ['        createdAt = block.timestamp;'];
+    const ctorBody: string[] = ['        createdAt = block.timestamp;'];
+
+    if (needsOwner) {
+      ctorBody.push('        owner = msg.sender;');
+    }
+
+    // access-control guard roles initialisation (without plugin)
+    if (guardTypes.has('access-control') && !def.plugins?.accessControl) {
+      for (const role of accessControlRoles) {
+        ctorBody.push(`        ${role} = msg.sender;`);
+      }
+    }
 
     for (const name of cfg?.includedVariables ?? []) {
       const v = (def.variables ?? []).find(x => x.name === name && !x.isArray);
       if (v) {
         ctorParams.push(`${v.type} _${v.name}`);
-        ctorAssigns.push(`        ${v.name} = _${v.name};`);
+        ctorBody.push(`        ${v.name} = _${v.name};`);
       }
     }
     for (const name of cfg?.includedArrays ?? []) {
       const v = (def.variables ?? []).find(x => x.name === name && x.isArray);
       if (v) {
         ctorParams.push(`${v.type}[] memory _${v.name}`);
-        ctorAssigns.push(`        ${v.name} = _${v.name};`);
+        ctorBody.push(`        ${v.name} = _${v.name};`);
       }
     }
     for (const name of cfg?.includedStructs ?? []) {
       const ct = (def.customTypes ?? []).find(x => x.name === name);
       if (ct) {
         ctorParams.push(`${ct.name} memory _${ct.name.toLowerCase()}`);
-        ctorAssigns.push(`        ${ct.name.toLowerCase()} = _${ct.name.toLowerCase()};`);
+        ctorBody.push(`        ${ct.name.toLowerCase()} = _${ct.name.toLowerCase()};`);
       }
     }
 
@@ -334,7 +330,7 @@ export class SolidityPreviewComponent implements OnChanges {
       ? '\n        ' + ctorParams.join(',\n        ') + '\n    '
       : '';
     lines.push(`    constructor(${paramStr}) {`);
-    ctorAssigns.forEach(a => lines.push(a));
+    for (const stmt of ctorBody) lines.push(stmt);
     lines.push('    }');
     lines.push('');
 

@@ -35,6 +35,7 @@ export class SolidityGenService {
     lines.push(
       `    State public currentState = State.${this.toIdentifier(def.initialState)};`,
     );
+    lines.push('    uint256 public createdAt;');
     lines.push('');
 
     // Plugin: locking
@@ -57,10 +58,6 @@ export class SolidityGenService {
       lines.push('    modifier onlyOwner() {');
       lines.push('        require(msg.sender == owner, "Not owner");');
       lines.push('        _;');
-      lines.push('    }');
-      lines.push('');
-      lines.push(`    constructor() {`);
-      lines.push('        owner = msg.sender;');
       lines.push('    }');
       lines.push('');
     }
@@ -101,6 +98,47 @@ export class SolidityGenService {
       lines.push(`    ${v.type} ${vis} ${v.name}${init};`);
     }
     if ((def.variables ?? []).length > 0) lines.push('');
+
+    // Unified constructor
+    const ctorParams: string[] = [];
+    const ctorBody: string[] = ['        createdAt = block.timestamp;'];
+
+    if (def.plugins?.accessControl) {
+      ctorBody.push('        owner = msg.sender;');
+    }
+
+    for (const name of def.constructorConfig?.includedVariables ?? []) {
+      const v = (def.variables ?? []).find((x) => x.name === name && !x.isArray);
+      if (v) {
+        ctorParams.push(`${v.type} _${v.name}`);
+        ctorBody.push(`        ${v.name} = _${v.name};`);
+      }
+    }
+
+    for (const name of def.constructorConfig?.includedArrays ?? []) {
+      const v = (def.variables ?? []).find((x) => x.name === name && x.isArray);
+      if (v) {
+        ctorParams.push(`${v.type}[] memory _${v.name}`);
+        ctorBody.push(`        ${v.name} = _${v.name};`);
+      }
+    }
+
+    for (const name of def.constructorConfig?.includedStructs ?? []) {
+      const ct = (def.customTypes ?? []).find((x) => x.name === name);
+      if (ct) {
+        const ident = this.toIdentifier(ct.name);
+        ctorParams.push(`${ident} memory _${ct.name.toLowerCase()}`);
+        ctorBody.push(`        ${ct.name.toLowerCase()} = _${ct.name.toLowerCase()};`);
+      }
+    }
+
+    const paramStr = ctorParams.length
+      ? '\n        ' + ctorParams.join(',\n        ') + '\n    '
+      : '';
+    lines.push(`    constructor(${paramStr}) {`);
+    for (const stmt of ctorBody) lines.push(stmt);
+    lines.push('    }');
+    lines.push('');
 
     // Transition functions
     for (const t of def.transitions) {
