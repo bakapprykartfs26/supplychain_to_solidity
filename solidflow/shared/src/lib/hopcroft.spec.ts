@@ -319,5 +319,37 @@ describe('minimizeFsm', () => {
     expect(stats.alreadyMinimal).toBe(false);
     const goTransitions = minimized.transitions.filter((t) => t.name === 'go');
     expect(goTransitions).toHaveLength(1);
+    expect(stats.removedTransitions).toHaveLength(1);
+    expect(stats.removedTransitions[0].id).toBe('go-2');
+  });
+
+  it('reports removed transitions for merged states', () => {
+    // When A and B merge, the transition from the merged-away state is removed.
+    const def = fsm(
+      ['Start', 'A', 'B', 'Terminal'],
+      'Start',
+      [
+        tr('toA', 'Start', 'A'),
+        tr('toB', 'Start', 'B'),
+        tr('go', 'A', 'Terminal'),
+        tr('go', 'B', 'Terminal'),
+      ],
+    );
+    const { stats } = minimizeFsm(def);
+    expect(stats.removedTransitions).toHaveLength(1);
+    const removedNames = stats.removedTransitions.map((t) => t.from);
+    // whichever of A or B was merged away, its transition is in removedTransitions
+    const mergedAway = Object.keys(stats.mergedStates)[0];
+    expect(removedNames).toContain(mergedAway);
+  });
+
+  it('reports no removed transitions for an already-minimal FSM', () => {
+    const def = fsm(
+      ['A', 'B', 'C', 'D'],
+      'A',
+      [tr('x', 'A', 'B'), tr('y', 'B', 'C'), tr('z', 'C', 'D')],
+    );
+    const { stats } = minimizeFsm(def);
+    expect(stats.removedTransitions).toHaveLength(0);
   });
 });

@@ -9,6 +9,8 @@ export interface FsmMinimizationStats {
   removedDeadStates: string[];
   /** Maps each merged-away state name to its representative. */
   mergedStates: Record<string, string>;
+  /** Transitions present in the original FSM that are absent after minimization. */
+  removedTransitions: FsmTransition[];
   alreadyMinimal: boolean;
 }
 
@@ -359,6 +361,9 @@ export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
     if (rep !== s) mergedStates[s] = rep;
   }
 
+  const minimizedTransitionIds = new Set(minimized.transitions.map((t) => t.id));
+  const removedTransitions = def.transitions.filter((t) => !minimizedTransitionIds.has(t.id));
+
   const nothingChanged =
     removedUnreachable.length === 0 &&
     removedDead.length === 0 &&
@@ -375,6 +380,7 @@ export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
       removedUnreachableStates: removedUnreachable,
       removedDeadStates: removedDead,
       mergedStates,
+      removedTransitions,
       alreadyMinimal: nothingChanged,
     },
   };
@@ -395,6 +401,7 @@ function identity(
       removedUnreachableStates: [],
       removedDeadStates: [],
       mergedStates: {},
+      removedTransitions: [],
       alreadyMinimal: true,
     },
   };

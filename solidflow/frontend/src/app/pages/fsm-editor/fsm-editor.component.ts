@@ -195,7 +195,7 @@ const TABS: { id: TabId; label: string }[] = [
 
               @if (preview.stats.removedUnreachableStates.length > 0) {
                 <div class="dialog-section">
-                  <div class="dialog-section-label">Unreachable states removed</div>
+                  <div class="dialog-section-label">Unreachable states to remove</div>
                   @for (s of preview.stats.removedUnreachableStates; track s) {
                     <div class="dialog-tag dialog-tag--red">{{ s }}</div>
                   }
@@ -204,7 +204,7 @@ const TABS: { id: TabId; label: string }[] = [
 
               @if (preview.stats.removedDeadStates.length > 0) {
                 <div class="dialog-section">
-                  <div class="dialog-section-label">Dead-end states removed</div>
+                  <div class="dialog-section-label">Dead-end states to remove</div>
                   @for (s of preview.stats.removedDeadStates; track s) {
                     <div class="dialog-tag dialog-tag--orange">{{ s }}</div>
                   }
@@ -214,7 +214,7 @@ const TABS: { id: TabId; label: string }[] = [
               @if (preview.stats.mergedStates | keyvalue; as merges) {
                 @if (merges.length > 0) {
                   <div class="dialog-section">
-                    <div class="dialog-section-label">Equivalent states merged</div>
+                    <div class="dialog-section-label">Equivalent states to merge</div>
                     @for (entry of merges; track entry.key) {
                       <div class="dialog-merge-row">
                         <span class="dialog-tag dialog-tag--purple">{{ entry.key }}</span>
@@ -224,6 +224,15 @@ const TABS: { id: TabId; label: string }[] = [
                     }
                   </div>
                 }
+              }
+
+              @if (preview.stats.removedTransitions.length > 0) {
+                <div class="dialog-section">
+                  <div class="dialog-section-label">Duplicate transitions to remove</div>
+                  @for (t of preview.stats.removedTransitions; track t.id) {
+                    <div class="dialog-tag dialog-tag--red">{{ t.name }} ({{ t.from }} → {{ t.to }})</div>
+                  }
+                </div>
               }
 
               <div class="dialog-summary">
