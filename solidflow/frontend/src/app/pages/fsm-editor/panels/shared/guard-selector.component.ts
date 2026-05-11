@@ -9,9 +9,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type {
   FsmGuard, FsmGuardConfig, GuardOperator, FsmPlugins,
-  AccessControlGuard, InputValidationGuard, StatePreconditionGuard,
-  PostconditionGuard, EventEmissionGuard, ReturnValueGuard,
-  DeadlineGuard, TimeLockGuard, CooldownGuard, WindowGuard,
+  AccessControlGuard, InputValidationGuard,
+  PostconditionGuard, ReturnValueGuard,
+  TimeLockGuard, CooldownGuard, WindowGuard,
   SourceWhitelistGuard, FreshnessGuard, SanityBoundGuard,
 } from '@solidflow/shared';
 
@@ -26,13 +26,9 @@ interface GuardMeta {
 const GUARD_CATALOG: GuardMeta[] = [
   { type: 'access-control',     category: 'Entry',    icon: 'lock',               label: 'Access Control',       description: 'onlyRole / onlyOwner' },
   { type: 'input-validation',   category: 'Entry',    icon: 'rule',               label: 'Input Validation',     description: 'nonzero, range checks' },
-  { type: 'state-precondition', category: 'Entry',    icon: 'check_circle',       label: 'State Precondition',   description: 'inState(X) modifier' },
   { type: 'pause',              category: 'Entry',    icon: 'pause_circle',       label: 'Pause Guard',          description: 'whenNotPaused' },
   { type: 'postcondition',      category: 'Exit',     icon: 'verified',           label: 'Postcondition Assert', description: 'invariants after effects' },
-  { type: 'event-emission',     category: 'Exit',     icon: 'campaign',           label: 'Event Emission',       description: 'emit after state change' },
   { type: 'return-value',       category: 'Exit',     icon: 'output',             label: 'Return Value Check',   description: 'verify ERC-20 returns' },
-  { type: 'reentrancy',         category: 'Exit',     icon: 'sync_problem',       label: 'Reentrancy Lock',      description: 'nonReentrant modifier' },
-  { type: 'deadline',           category: 'Temporal', icon: 'timer_off',          label: 'Deadline Guard',       description: 'block.timestamp range' },
   { type: 'timelock',           category: 'Temporal', icon: 'hourglass_top',      label: 'Time-lock',            description: 'min delay before exec' },
   { type: 'cooldown',           category: 'Temporal', icon: 'av_timer',           label: 'Cooldown Guard',       description: 'lastCall + interval' },
   { type: 'window',             category: 'Temporal', icon: 'calendar_today',     label: 'Window Guard',         description: 'valid time range only' },
@@ -52,13 +48,9 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
   switch (type) {
     case 'access-control':     return { type, role: 'owner' } as AccessControlGuard;
     case 'input-validation':   return { type, expression: 'msg.value > 0' } as InputValidationGuard;
-    case 'state-precondition': return { type, state: '' } as StatePreconditionGuard;
     case 'pause':              return { type };
     case 'postcondition':      return { type, expression: '' } as PostconditionGuard;
-    case 'event-emission':     return { type, eventName: 'StateChanged' } as EventEmissionGuard;
     case 'return-value':       return { type, expression: '' } as ReturnValueGuard;
-    case 'reentrancy':         return { type };
-    case 'deadline':           return { type, timestamp: 'block.timestamp + 1 days' } as DeadlineGuard;
     case 'timelock':           return { type, delay: '1 days' } as TimeLockGuard;
     case 'cooldown':           return { type, interval: '1 hours' } as CooldownGuard;
     case 'window':             return { type, start: 'block.timestamp', end: 'block.timestamp + 1 days' } as WindowGuard;
@@ -161,15 +153,6 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                       placeholder="msg.value > 0" />
                   </mat-form-field>
                 }
-                @if (entry.guard.type === 'state-precondition') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Required State</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asStatePrecondition(entry.guard).state"
-                      (ngModelChange)="patchGuard(i, { state: $event })"
-                      placeholder="Idle" />
-                  </mat-form-field>
-                }
                 @if (entry.guard.type === 'pause') {
                   <p class="no-fields">Adds a per-transition pause check — no config needed.</p>
                 }
@@ -182,15 +165,6 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                       placeholder="balance >= minBalance" />
                   </mat-form-field>
                 }
-                @if (entry.guard.type === 'event-emission') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Event Name</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asEventEmission(entry.guard).eventName"
-                      (ngModelChange)="patchGuard(i, { eventName: $event })"
-                      placeholder="StateChanged" />
-                  </mat-form-field>
-                }
                 @if (entry.guard.type === 'return-value') {
                   <mat-form-field appearance="fill" class="full-width">
                     <mat-label>Return Expression</mat-label>
@@ -198,18 +172,6 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                       [ngModel]="asReturnValue(entry.guard).expression"
                       (ngModelChange)="patchGuard(i, { expression: $event })"
                       placeholder="token.transfer(to, amount)" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'reentrancy') {
-                  <p class="no-fields">Adds <code>nonReentrant</code> modifier — no config needed.</p>
-                }
-                @if (entry.guard.type === 'deadline') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Deadline Expression</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asDeadline(entry.guard).timestamp"
-                      (ngModelChange)="patchGuard(i, { timestamp: $event })"
-                      placeholder="block.timestamp + 7 days" />
                   </mat-form-field>
                 }
                 @if (entry.guard.type === 'timelock') {
@@ -447,11 +409,8 @@ export class GuardSelectorComponent {
 
   asAccessControl(g: FsmGuard)     { return g as AccessControlGuard; }
   asInputValidation(g: FsmGuard)   { return g as InputValidationGuard; }
-  asStatePrecondition(g: FsmGuard) { return g as StatePreconditionGuard; }
   asPostcondition(g: FsmGuard)     { return g as PostconditionGuard; }
-  asEventEmission(g: FsmGuard)     { return g as EventEmissionGuard; }
   asReturnValue(g: FsmGuard)       { return g as ReturnValueGuard; }
-  asDeadline(g: FsmGuard)          { return g as DeadlineGuard; }
   asTimelock(g: FsmGuard)          { return g as TimeLockGuard; }
   asCooldown(g: FsmGuard)          { return g as CooldownGuard; }
   asWindow(g: FsmGuard)            { return g as WindowGuard; }

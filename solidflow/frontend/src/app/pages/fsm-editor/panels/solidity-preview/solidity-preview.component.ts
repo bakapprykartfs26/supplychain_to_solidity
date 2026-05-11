@@ -272,10 +272,6 @@ export class SolidityPreviewComponent implements OnChanges {
       lines.push('');
     }
 
-    if (guardTypes.has('reentrancy') && !def.plugins?.locking) {
-      lines.push('    bool private _locked;');
-      lines.push('');
-    }
     if (guardTypes.has('timelock') || guardTypes.has('cooldown')) {
       lines.push('    uint256 public lastCall;');
       lines.push('');
@@ -471,13 +467,9 @@ export class SolidityPreviewComponent implements OnChanges {
     switch (guard.type) {
       case 'access-control':     return `msg.sender == ${guard.role === 'owner' ? 'owner' : guard.role}`;
       case 'input-validation':   return guard.expression;
-      case 'state-precondition': return `currentState == State.${guard.state}`;
       case 'pause':              return `true`;
       case 'postcondition':      return guard.expression;
-      case 'event-emission':     return `true /* emit ${guard.eventName} */`;
       case 'return-value':       return guard.expression;
-      case 'reentrancy':         return `!_locked`;
-      case 'deadline':           return `block.timestamp <= ${guard.timestamp}`;
       case 'timelock':           return `block.timestamp >= lastCall + ${guard.delay}`;
       case 'cooldown':           return `block.timestamp >= lastCall + ${guard.interval}`;
       case 'window':             return `block.timestamp >= ${guard.start} && block.timestamp <= ${guard.end}`;

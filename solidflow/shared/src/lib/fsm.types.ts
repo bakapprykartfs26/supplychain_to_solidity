@@ -121,17 +121,13 @@ export type GuardOperator = 'AND' | 'OR';
 // Entry guards
 export interface AccessControlGuard { type: 'access-control'; role: string; }
 export interface InputValidationGuard { type: 'input-validation'; expression: string; }
-export interface StatePreconditionGuard { type: 'state-precondition'; state: string; }
 export interface PauseGuard { type: 'pause'; }
 
 // Exit guards
 export interface PostconditionGuard { type: 'postcondition'; expression: string; }
-export interface EventEmissionGuard { type: 'event-emission'; eventName: string; }
 export interface ReturnValueGuard { type: 'return-value'; expression: string; }
-export interface ReentrancyGuard { type: 'reentrancy'; }
 
 // Temporal guards
-export interface DeadlineGuard { type: 'deadline'; timestamp: string; }
 export interface TimeLockGuard { type: 'timelock'; delay: string; }
 export interface CooldownGuard { type: 'cooldown'; interval: string; }
 export interface WindowGuard { type: 'window'; start: string; end: string; }
@@ -142,9 +138,9 @@ export interface FreshnessGuard { type: 'freshness'; maxAge: string; }
 export interface SanityBoundGuard { type: 'sanity-bound'; min: string; max: string; }
 
 export type FsmGuard =
-  | AccessControlGuard | InputValidationGuard | StatePreconditionGuard | PauseGuard
-  | PostconditionGuard | EventEmissionGuard | ReturnValueGuard | ReentrancyGuard
-  | DeadlineGuard | TimeLockGuard | CooldownGuard | WindowGuard
+  | AccessControlGuard | InputValidationGuard | PauseGuard
+  | PostconditionGuard | ReturnValueGuard
+  | TimeLockGuard | CooldownGuard | WindowGuard
   | SourceWhitelistGuard | FreshnessGuard | SanityBoundGuard;
 
 export interface FsmGuardConfig {
