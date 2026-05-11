@@ -247,6 +247,43 @@ function autoLayout(states: string[]): Record<string, Vec2> {
           <p class="hint-secondary">Add transitions via the Transitions panel</p>
         </div>
       }
+
+      @if (pendingStateDelete; as pending) {
+        <div class="dialog-backdrop" (click)="cancelDeleteState()">
+          <div class="dialog" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+              <span class="dialog-title">Delete state?</span>
+              <button class="dialog-close" (click)="cancelDeleteState()">✕</button>
+            </div>
+
+            <div class="dialog-body">
+              <p>
+                State <strong>{{ pending.state }}</strong> has
+                <strong>{{ pending.transitionCount }}</strong> connected transition(s).
+                Deleting it will also delete those transitions.
+              </p>
+
+              <label>Type DELETE to confirm</label>
+              <input
+                [value]="deleteConfirmation"
+                (input)="deleteConfirmation = $any($event.target).value"
+                spellcheck="false"
+              />
+            </div>
+
+            <div class="dialog-footer">
+              <button (click)="cancelDeleteState()">Cancel</button>
+              <button
+                class="danger"
+                [disabled]="deleteConfirmation !== 'DELETE'"
+                (click)="confirmDeleteState()"
+              >
+                Delete state
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -310,6 +347,120 @@ function autoLayout(states: string[]): Record<string, Vec2> {
     .hint-glyph { font-size: 3rem; color: #c8c4d8; line-height: 1; margin-bottom: 0.5rem; }
     .hint-primary { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.9rem; color: #b4b4c8; font-weight: 500; }
     .hint-secondary { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.75rem; color: #c8c4d8; }
+
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dialog {
+      background: var(--sf-surface);
+      border: 1px solid var(--sf-border);
+      border-radius: 14px;
+      width: 420px;
+      max-width: calc(100vw - 2rem);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .dialog-header,
+    .dialog-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--sf-border);
+    }
+
+    .dialog-footer {
+      justify-content: flex-end;
+      gap: 0.6rem;
+      border-top: 1px solid var(--sf-border);
+      border-bottom: none;
+      background: var(--sf-bg);
+    }
+
+    .dialog-title {
+      font-weight: 700;
+      color: var(--sf-text);
+    }
+
+    .dialog-close {
+      background: transparent;
+      border: none;
+      color: var(--sf-text-muted);
+      cursor: pointer;
+    }
+
+    .dialog-body {
+      padding: 1rem 1.25rem;
+    }
+
+    .dialog-text {
+      color: var(--sf-text-muted);
+      line-height: 1.6;
+      margin: 0 0 1rem;
+    }
+
+    .dialog-text strong {
+      color: var(--sf-text);
+    }
+
+    .confirm-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sf-text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .confirm-input {
+      width: 100%;
+      background: var(--sf-elevated);
+      border: 1px solid var(--sf-border);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      color: var(--sf-text);
+      font-family: var(--sf-mono);
+      outline: none;
+    }
+
+    .confirm-input:focus {
+      border-color: #ef4444;
+    }
+
+    .dialog-btn-cancel,
+    .dialog-btn-delete {
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .dialog-btn-cancel {
+      background: transparent;
+      border: 1.5px solid var(--sf-border);
+      color: var(--sf-text-muted);
+    }
+
+    .dialog-btn-delete {
+      background: #ef4444;
+      border: none;
+      color: white;
+    }
+
+    .dialog-btn-delete:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
   `],
 })
 export class FsmCanvasComponent implements OnChanges, OnDestroy, AfterViewInit {
@@ -330,6 +481,8 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy, AfterViewInit {
   pan: Vec2 = { x: 0, y: 0 };
   panning: { startX: number; startY: number } | null = null;
   userBends: Record<string, number> = {};
+  pendingStateDelete: { state: string; transitionCount: number } | null = null;
+  deleteConfirmation = '';
 
   private readonly keydownListener = (e: KeyboardEvent) => this.onKeydown(e);
 
@@ -628,21 +781,44 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy, AfterViewInit {
     e.preventDefault();
 
     if (this.definition.states.includes(this.selected)) {
-      const removed = this.selected;
-      this.selected = null;
-      delete this.positions[removed];
-      this.definitionChange.emit({
-        ...this.definition,
-        states: this.definition.states.filter(s => s !== removed),
-        transitions: this.definition.transitions.filter(t => t.from !== removed && t.to !== removed),
-      });
-    } else if (this.definition.transitions.some(t => t.id === this.selected)) {
-      const removedId = this.selected;
-      this.selected = null;
-      this.definitionChange.emit({
-        ...this.definition,
-        transitions: this.definition.transitions.filter(t => t.id !== removedId),
-      });
+      const state = this.selected;
+
+      const transitionCount = this.definition.transitions.filter(
+        t => t.from === state || t.to === state
+      ).length;
+
+      if (transitionCount > 0) {
+        this.pendingStateDelete = { state, transitionCount };
+        this.deleteConfirmation = '';
+        return;
+      }
+
+      this.deleteStateFromCanvas(state);
     }
+  }
+
+  cancelDeleteState(): void {
+    this.pendingStateDelete = null;
+    this.deleteConfirmation = '';
+  }
+
+  confirmDeleteState(): void {
+    if (!this.pendingStateDelete || this.deleteConfirmation !== 'DELETE') return;
+
+    this.deleteStateFromCanvas(this.pendingStateDelete.state);
+    this.cancelDeleteState();
+  }
+
+  private deleteStateFromCanvas(state: string): void {
+    this.selected = null;
+    delete this.positions[state];
+
+    this.definitionChange.emit({
+      ...this.definition,
+      states: this.definition.states.filter(s => s !== state),
+      transitions: this.definition.transitions.filter(
+        t => t.from !== state && t.to !== state
+      ),
+    });
   }
 }

@@ -87,6 +87,45 @@ import type { FsmDefinition } from '@solidflow/shared';
           <mat-icon>add</mat-icon>
         </button>
       </div>
+
+      @if (pendingStateDelete; as pending) {
+        <div class="dialog-backdrop" (click)="cancelDeleteState()">
+          <div class="dialog dialog--danger" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+              <span class="dialog-title">Delete state?</span>
+              <button class="dialog-close" (click)="cancelDeleteState()">✕</button>
+            </div>
+
+            <div class="dialog-body">
+              <p class="dialog-text">
+                State <strong>{{ pending.state }}</strong> has
+                <strong>{{ pending.transitionCount }}</strong> connected transition(s).
+                Deleting it will also delete those transitions.
+              </p>
+
+              <label class="confirm-label">Type DELETE to confirm</label>
+              <input
+                class="confirm-input"
+                [value]="deleteConfirmation"
+                (input)="deleteConfirmation = $any($event.target).value"
+                spellcheck="false"
+                autofocus
+              />
+            </div>
+
+            <div class="dialog-footer">
+              <button class="dialog-btn-cancel" (click)="cancelDeleteState()">Cancel</button>
+              <button
+                class="dialog-btn-delete"
+                [disabled]="deleteConfirmation !== 'DELETE'"
+                (click)="confirmDeleteState()"
+              >
+                Delete state
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -252,11 +291,133 @@ import type { FsmDefinition } from '@solidflow/shared';
     }
     .add-btn:disabled { opacity: 0.35; cursor: not-allowed; }
     .add-btn mat-icon { font-size: 18px; width: 18px; height: 18px; pointer-events: none; }
+
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dialog {
+      background: var(--sf-surface);
+      border: 1px solid var(--sf-border);
+      border-radius: 14px;
+      width: 420px;
+      max-width: calc(100vw - 2rem);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .dialog-header,
+    .dialog-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--sf-border);
+    }
+
+    .dialog-footer {
+      justify-content: flex-end;
+      gap: 0.6rem;
+      border-top: 1px solid var(--sf-border);
+      border-bottom: none;
+      background: var(--sf-bg);
+    }
+
+    .dialog-title {
+      font-weight: 700;
+      color: var(--sf-text);
+    }
+
+    .dialog-close {
+      background: transparent;
+      border: none;
+      color: var(--sf-text-muted);
+      cursor: pointer;
+    }
+
+    .dialog-body {
+      padding: 1rem 1.25rem;
+    }
+
+    .dialog-text {
+      color: var(--sf-text-muted);
+      line-height: 1.6;
+      margin: 0 0 1rem;
+    }
+
+    .dialog-text strong {
+      color: var(--sf-text);
+    }
+
+    .confirm-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sf-text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .confirm-input {
+      width: 100%;
+      background: var(--sf-elevated);
+      border: 1px solid var(--sf-border);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      color: var(--sf-text);
+      font-family: var(--sf-mono);
+      outline: none;
+    }
+
+    .confirm-input:focus {
+      border-color: #ef4444;
+    }
+
+    .dialog-btn-cancel,
+    .dialog-btn-delete {
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .dialog-btn-cancel {
+      background: transparent;
+      border: 1.5px solid var(--sf-border);
+      color: var(--sf-text-muted);
+    }
+
+    .dialog-btn-delete {
+      background: #ef4444;
+      border: none;
+      color: white;
+    }
+
+    .dialog-btn-delete:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
   `],
 })
 export class StatesPanelComponent {
   @Input() definition!: FsmDefinition;
   @Output() definitionChange = new EventEmitter<FsmDefinition>();
+
+  pendingStateDelete: {
+    index: number;
+    state: string;
+    transitionCount: number;
+  } | null = null;
+
+  deleteConfirmation = '';
 
   newStateName = '';
   dropdownOpen = false;
@@ -282,10 +443,42 @@ export class StatesPanelComponent {
   }
 
   removeState(index: number): void {
+    const state = this.definition.states[index];
+
+    const transitionCount = this.definition.transitions.filter(
+      (t) => t.from === state || t.to === state
+    ).length;
+
+    if (transitionCount > 0) {
+      this.pendingStateDelete = { index, state, transitionCount };
+      this.deleteConfirmation = '';
+      return;
+    }
+
+    this.deleteState(index);
+  }
+
+  cancelDeleteState(): void {
+    this.pendingStateDelete = null;
+    this.deleteConfirmation = '';
+  }
+
+  confirmDeleteState(): void {
+    if (!this.pendingStateDelete || this.deleteConfirmation !== 'DELETE') return;
+
+    this.deleteState(this.pendingStateDelete.index);
+    this.cancelDeleteState();
+  }
+
+  private deleteState(index: number): void {
     const removed = this.definition.states[index];
-    const states = this.definition.states.filter((_, i) => i !== index);
-    const transitions = this.definition.transitions.filter((t) => t.from !== removed && t.to !== removed);
-    this.patch({ states, transitions });
+
+    this.patch({
+      states: this.definition.states.filter((_, i) => i !== index),
+      transitions: this.definition.transitions.filter(
+        (t) => t.from !== removed && t.to !== removed
+      ),
+    });
   }
 
   patch(partial: Partial<FsmDefinition>): void {
