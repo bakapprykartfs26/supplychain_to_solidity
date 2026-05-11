@@ -455,7 +455,6 @@ export class SolidityPreviewComponent implements OnChanges {
         return 'Entry';
 
       case 'postcondition':
-      case 'return-value':
         return 'Exit';
 
       case 'timelock':
@@ -535,13 +534,12 @@ export class SolidityPreviewComponent implements OnChanges {
       case 'input-validation':   return guard.expression;
       case 'pause':              return `true`;
       case 'postcondition':      return guard.expression;
-      case 'return-value':       return guard.expression;
       case 'timelock':           return `block.timestamp >= lastCall + ${guard.delay}`;
       case 'cooldown':           return `block.timestamp >= lastCall + ${guard.interval}`;
       case 'window':             return `block.timestamp >= ${guard.start} && block.timestamp <= ${guard.end}`;
       case 'source-whitelist':   return `msg.sender == ${guard.address}`;
       case 'freshness':          return `block.timestamp - lastUpdate <= ${guard.maxAge}`;
-      case 'sanity-bound':       return `value >= ${guard.min} && value <= ${guard.max}`;
+      case 'sanity-bound':       return `msg.value >= ${guard.min} && msg.value <= ${guard.max}`;
     }
   }
 

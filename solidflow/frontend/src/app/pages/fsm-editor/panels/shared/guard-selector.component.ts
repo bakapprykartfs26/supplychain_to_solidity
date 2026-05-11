@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import type {
   FsmGuard, FsmGuardConfig, GuardOperator, FsmPlugins,
   AccessControlGuard, InputValidationGuard,
-  PostconditionGuard, ReturnValueGuard,
+  PostconditionGuard,
   TimeLockGuard, CooldownGuard, WindowGuard,
   SourceWhitelistGuard, FreshnessGuard, SanityBoundGuard,
 } from '@solidflow/shared';
@@ -28,7 +28,6 @@ const GUARD_CATALOG: GuardMeta[] = [
   { type: 'input-validation',   category: 'Entry',    icon: 'rule',               label: 'Input Validation',     description: 'nonzero, range checks' },
   { type: 'pause',              category: 'Entry',    icon: 'pause_circle',       label: 'Pause Guard',          description: 'whenNotPaused' },
   { type: 'postcondition',      category: 'Exit',     icon: 'verified',           label: 'Postcondition Assert', description: 'invariants after effects' },
-  { type: 'return-value',       category: 'Exit',     icon: 'output',             label: 'Return Value Check',   description: 'verify ERC-20 returns' },
   { type: 'timelock',           category: 'Temporal', icon: 'hourglass_top',      label: 'Time-lock',            description: 'min delay before exec' },
   { type: 'cooldown',           category: 'Temporal', icon: 'av_timer',           label: 'Cooldown Guard',       description: 'lastCall + interval' },
   { type: 'window',             category: 'Temporal', icon: 'calendar_today',     label: 'Window Guard',         description: 'valid time range only' },
@@ -50,7 +49,6 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
     case 'input-validation':   return { type, expression: 'msg.value > 0' } as InputValidationGuard;
     case 'pause':              return { type };
     case 'postcondition':      return { type, expression: '' } as PostconditionGuard;
-    case 'return-value':       return { type, expression: '' } as ReturnValueGuard;
     case 'timelock':           return { type, delay: '1 days' } as TimeLockGuard;
     case 'cooldown':           return { type, interval: '1 hours' } as CooldownGuard;
     case 'window':             return { type, start: 'block.timestamp', end: 'block.timestamp + 1 days' } as WindowGuard;
@@ -185,19 +183,6 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                           [ngModel]="asPostcondition(entry.guard).expression"
                           (ngModelChange)="patchGuard(i, { expression: $event })"
                           placeholder="balance >= minBalance"
-                        />
-                      </mat-form-field>
-                    }
-
-                    @if (entry.guard.type === 'return-value') {
-                      <mat-form-field appearance="fill" class="full-width">
-                        <mat-label>Return Expression</mat-label>
-                        <input
-                          matInput
-                          class="mono"
-                          [ngModel]="asReturnValue(entry.guard).expression"
-                          (ngModelChange)="patchGuard(i, { expression: $event })"
-                          placeholder="token.transfer(to, amount)"
                         />
                       </mat-form-field>
                     }
@@ -480,7 +465,6 @@ export class GuardSelectorComponent {
   asAccessControl(g: FsmGuard)     { return g as AccessControlGuard; }
   asInputValidation(g: FsmGuard)   { return g as InputValidationGuard; }
   asPostcondition(g: FsmGuard)     { return g as PostconditionGuard; }
-  asReturnValue(g: FsmGuard)       { return g as ReturnValueGuard; }
   asTimelock(g: FsmGuard)          { return g as TimeLockGuard; }
   asCooldown(g: FsmGuard)          { return g as CooldownGuard; }
   asWindow(g: FsmGuard)            { return g as WindowGuard; }

@@ -125,7 +125,6 @@ export interface PauseGuard { type: 'pause'; }
 
 // Exit guards
 export interface PostconditionGuard { type: 'postcondition'; expression: string; }
-export interface ReturnValueGuard { type: 'return-value'; expression: string; }
 
 // Temporal guards
 export interface TimeLockGuard { type: 'timelock'; delay: string; }
@@ -139,7 +138,7 @@ export interface SanityBoundGuard { type: 'sanity-bound'; min: string; max: stri
 
 export type FsmGuard =
   | AccessControlGuard | InputValidationGuard | PauseGuard
-  | PostconditionGuard | ReturnValueGuard
+  | PostconditionGuard
   | TimeLockGuard | CooldownGuard | WindowGuard
   | SourceWhitelistGuard | FreshnessGuard | SanityBoundGuard;
 
