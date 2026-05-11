@@ -46,18 +46,21 @@ function fmt(v: number): string { return v.toFixed(1); }
 function autoLayout(states: string[]): Record<string, Vec2> {
   const n = states.length;
   const result: Record<string, Vec2> = {};
+
   states.forEach((s, i) => {
     if (n === 1) {
       result[s] = { x: SVG_W / 2, y: SVG_H / 2 };
     } else {
-      const angle = (2 * Math.PI * i) / n - Math.PI / 2;
-      const r = Math.min(SVG_W, SVG_H) * 0.32;
+      const spacing = Math.min(240, SVG_W / Math.max(n, 2));
+      const startX = SVG_W / 2 - ((n - 1) * spacing) / 2;
+
       result[s] = {
-        x: SVG_W / 2 + r * Math.cos(angle),
-        y: SVG_H / 2 + r * Math.sin(angle),
+        x: startX + i * spacing,
+        y: SVG_H / 2,
       };
     }
   });
+
   return result;
 }
 
@@ -398,7 +401,10 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy, AfterViewInit {
       const group = normalGroups[key] ?? [];
       const idx = group.indexOf(tr);
       const total = group.length;
-      const basePerp = (idx - (total - 1) / 2) * 40;
+      const basePerp =
+        total === 1
+          ? 58
+          : (idx - (total - 1) / 2) * 200;
       const flip = tr.from > tr.to ? -1 : 1;
       const autoPerp = basePerp * flip;
 
@@ -434,7 +440,7 @@ export class FsmCanvasComponent implements OnChanges, OnDestroy, AfterViewInit {
     const pos = this.positions[state];
     if (!pos) return { x: 0, y: 0 };
     const angle = -Math.PI / 2 + (loopIndex - (totalLoops - 1) / 2) * (Math.PI / 3);
-    const dist = 82 + loopIndex * 10;
+    const dist = 95 + loopIndex * 12;
     return { x: pos.x + dist * Math.cos(angle), y: pos.y + dist * Math.sin(angle) };
   }
 
