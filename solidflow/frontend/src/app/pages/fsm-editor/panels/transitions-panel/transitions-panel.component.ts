@@ -189,10 +189,28 @@ import { ArrayEditorComponent } from '../../../../shared/array-editor.component'
                 }
               </div>
 
-              <button mat-button class="remove-btn" (click)="removeTransition(i)">
-                <mat-icon>delete_outline</mat-icon>
-                Remove transition
-              </button>
+              @if (pendingTransitionDeleteIndex === i) {
+                <div class="delete-confirm">
+                  <div class="delete-message">
+                    You are about to delete <strong>{{ t.name || 'Unnamed' }}</strong>?
+                  </div>
+
+                  <div class="delete-actions">
+                    <button mat-button class="cancel-delete-btn" (click)="cancelRemoveTransition()">
+                      Cancel
+                    </button>
+
+                    <button mat-button class="confirm-delete-btn" (click)="confirmRemoveTransition(i)">
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <button mat-button class="remove-btn" (click)="requestRemoveTransition(i)">
+                  <mat-icon>delete_outline</mat-icon>
+                  Remove transition
+                </button>
+              }
             </div>
           </mat-expansion-panel>
         }
@@ -245,11 +263,41 @@ import { ArrayEditorComponent } from '../../../../shared/array-editor.component'
     .input-name-field { flex: 1; }
     .remove-input-btn { width: 28px; height: 28px; color: var(--sf-error) !important; flex-shrink: 0; }
     .remove-input-btn mat-icon { font-size: 16px; }
+    .delete-confirm {
+      border: 1px solid var(--sf-error);
+      border-radius: var(--sf-radius);
+      padding: 0.75rem;
+      margin-top: 0.25rem;
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .delete-message {
+      color: var(--sf-text);
+      font-size: 0.82rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .delete-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .cancel-delete-btn {
+      color: var(--sf-text-muted) !important;
+    }
+
+    .confirm-delete-btn {
+      color: var(--sf-error) !important;
+      font-weight: 700;
+    }
   `],
 })
 export class TransitionsPanelComponent {
   @Input() definition!: FsmDefinition;
   @Output() definitionChange = new EventEmitter<FsmDefinition>();
+
+  pendingTransitionDeleteIndex: number | null = null;
 
   addTransition(): void {
     const t: FsmTransition = {
@@ -266,8 +314,17 @@ export class TransitionsPanelComponent {
     this.definitionChange.emit({ ...this.definition, transitions });
   }
 
-  removeTransition(index: number): void {
+  requestRemoveTransition(index: number): void {
+    this.pendingTransitionDeleteIndex = index;
+  }
+
+  cancelRemoveTransition(): void {
+    this.pendingTransitionDeleteIndex = null;
+  }
+
+  confirmRemoveTransition(index: number): void {
     const transitions = this.definition.transitions.filter((_, i) => i !== index);
+    this.pendingTransitionDeleteIndex = null;
     this.definitionChange.emit({ ...this.definition, transitions });
   }
 
