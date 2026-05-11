@@ -340,14 +340,23 @@ export class SolidityPreviewComponent implements OnChanges {
       : '';
     lines.push(`    constructor(${paramStr}) {`);
 
-    this.emitGuardRequires(
-      lines,
-      def.constructorConfig?.guardConfig,
-      '        ',
-      { skipPause: true }
-    );
+    this.emitGuardRequires(lines, def.constructorConfig?.guardConfig, '        ', {
+      skipPause: true,
+      entryOnly: true,
+    });
+
+    this.emitGuardRequires(lines, def.constructorConfig?.guardConfig, '        ', {
+      skipPause: true,
+      temporalOracleOnly: true,
+    });
 
     for (const stmt of ctorBody) lines.push(stmt);
+
+    this.emitGuardRequires(lines, def.constructorConfig?.guardConfig, '        ', {
+      skipPause: true,
+      exitOnly: true,
+    });
+
     lines.push('    }');
     lines.push('');
 
@@ -378,6 +387,12 @@ export class SolidityPreviewComponent implements OnChanges {
 
       this.emitGuardRequires(lines, t.guardConfig, '        ', {
         skipPause: true,
+        entryOnly: true,
+      });
+
+      this.emitGuardRequires(lines, t.guardConfig, '        ', {
+        skipPause: true,
+        temporalOracleOnly: true,
       });
 
       if (t.guard) {
@@ -391,6 +406,11 @@ export class SolidityPreviewComponent implements OnChanges {
       } else {
         lines.push(...generateStatements(t.statements ?? [], '        '));
       }
+
+      this.emitGuardRequires(lines, t.guardConfig, '        ', {
+        skipPause: true,
+        exitOnly: true,
+      });
 
       if (def.plugins?.timedTransitions) {
         lines.push('        lastTransitionTime = block.timestamp;');
@@ -426,19 +446,65 @@ export class SolidityPreviewComponent implements OnChanges {
     return !!t.guardConfig?.guards?.some((entry) => entry.guard.type === 'pause');
   }
 
+  private guardCategory(type: import('@solidflow/shared').FsmGuard['type']):
+    'Entry' | 'Exit' | 'Temporal' | 'Oracle' {
+    switch (type) {
+      case 'access-control':
+      case 'input-validation':
+      case 'pause':
+        return 'Entry';
+
+      case 'postcondition':
+      case 'return-value':
+        return 'Exit';
+
+      case 'timelock':
+      case 'cooldown':
+      case 'window':
+        return 'Temporal';
+
+      case 'source-whitelist':
+      case 'freshness':
+      case 'sanity-bound':
+        return 'Oracle';
+    }
+  }
+
   private emitGuardRequires(
     lines: string[],
     guardConfig: import('@solidflow/shared').FsmGuardConfig | undefined,
     indent = '        ',
     options?: {
       skipPause?: boolean;
+      entryOnly?: boolean;
+      exitOnly?: boolean;
+      temporalOracleOnly?: boolean;
     },
   ): void {
     const guards = guardConfig?.guards ?? [];
 
-    const filteredGuards = options?.skipPause
+    let filteredGuards = options?.skipPause
       ? guards.filter((entry) => entry.guard.type !== 'pause')
       : guards;
+
+    if (options?.entryOnly) {
+      filteredGuards = filteredGuards.filter(
+        (entry) => this.guardCategory(entry.guard.type) === 'Entry'
+      );
+    }
+
+    if (options?.exitOnly) {
+      filteredGuards = filteredGuards.filter(
+        (entry) => this.guardCategory(entry.guard.type) === 'Exit'
+      );
+    }
+
+    if (options?.temporalOracleOnly) {
+      filteredGuards = filteredGuards.filter((entry) => {
+        const category = this.guardCategory(entry.guard.type);
+        return category === 'Temporal' || category === 'Oracle';
+      });
+    }
 
     if (filteredGuards.length === 0) {
       return;

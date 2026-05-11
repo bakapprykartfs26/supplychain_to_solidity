@@ -87,6 +87,7 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
                 </mat-icon>
               </div>
             </button>
+
             @if (!isCategoryCollapsed(cat)) {
               <div class="cat-grid">
                 @for (g of guardsByCategory(cat); track g.type) {
@@ -111,153 +112,214 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
       @if (activeGuards.length) {
         <div class="active-list">
           <div class="active-header">Active Guards</div>
-          @for (entry of activeGuards; track $index; let i = $index) {
-            <div class="active-item">
-              <div class="active-item-header">
-                <div class="active-item-title">
-                  <mat-icon class="active-icon" [style.color]="categoryColor(categoryOf(entry.guard.type))">
-                    {{ iconOf(entry.guard.type) }}
-                  </mat-icon>
-                  <span>{{ labelOf(entry.guard.type) }}</span>
-                </div>
-                <div class="active-item-actions">
-                  @if (i < activeGuards.length - 1) {
-                    <mat-form-field appearance="outline" class="op-select">
-                      <mat-select [ngModel]="entry.operator" (ngModelChange)="setOperator(i, $event)">
-                        <mat-option value="AND">AND</mat-option>
-                        <mat-option value="OR">OR</mat-option>
-                      </mat-select>
-                    </mat-form-field>
-                  }
-                  <button mat-icon-button class="remove-guard-btn" (click)="removeGuard(i)">
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
-              </div>
-              <div class="active-item-fields">
-                @if (entry.guard.type === 'access-control') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Role</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asAccessControl(entry.guard).role"
-                      (ngModelChange)="patchGuard(i, { role: $event })"
-                      placeholder="owner / MINTER_ROLE" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'input-validation') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Expression</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asInputValidation(entry.guard).expression"
-                      (ngModelChange)="patchGuard(i, { expression: $event })"
-                      placeholder="msg.value > 0" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'pause') {
-                  <p class="no-fields">Adds a per-transition pause check — no config needed.</p>
-                }
-                @if (entry.guard.type === 'postcondition') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Assert Expression</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asPostcondition(entry.guard).expression"
-                      (ngModelChange)="patchGuard(i, { expression: $event })"
-                      placeholder="balance >= minBalance" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'return-value') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Return Expression</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asReturnValue(entry.guard).expression"
-                      (ngModelChange)="patchGuard(i, { expression: $event })"
-                      placeholder="token.transfer(to, amount)" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'timelock') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Min Delay</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asTimelock(entry.guard).delay"
-                      (ngModelChange)="patchGuard(i, { delay: $event })"
-                      placeholder="1 days" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'cooldown') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Cooldown Interval</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asCooldown(entry.guard).interval"
-                      (ngModelChange)="patchGuard(i, { interval: $event })"
-                      placeholder="1 hours" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'window') {
-                  <div class="two-col">
+
+          @for (cat of categories; track cat) {
+            @if (activeGuardsByCategory(cat).length) {
+              <div class="active-header">{{ cat }} Guards</div>
+
+              @for (entry of activeGuardsByCategory(cat); track entry; let localIndex = $index) {
+                @let i = activeGuardIndex(entry);
+
+                <div class="active-item">
+                  <div class="active-item-header">
+                    <div class="active-item-title">
+                      <mat-icon class="active-icon" [style.color]="categoryColor(categoryOf(entry.guard.type))">
+                        {{ iconOf(entry.guard.type) }}
+                      </mat-icon>
+                      <span>{{ labelOf(entry.guard.type) }}</span>
+                    </div>
+
+                    <div class="active-item-actions">
+                      @if (localIndex < activeGuardsByCategory(cat).length - 1) {
+                        <mat-form-field appearance="outline" class="op-select">
+                          <mat-select [ngModel]="entry.operator" (ngModelChange)="setOperator(i, $event)">
+                            <mat-option value="AND">AND</mat-option>
+                            <mat-option value="OR">OR</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      }
+
+                      <button mat-icon-button class="remove-guard-btn" (click)="removeGuard(i)">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="active-item-fields">
+                    @if (entry.guard.type === 'access-control') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Role</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asAccessControl(entry.guard).role"
+                          (ngModelChange)="patchGuard(i, { role: $event })"
+                          placeholder="owner / MINTER_ROLE"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'input-validation') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Expression</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asInputValidation(entry.guard).expression"
+                          (ngModelChange)="patchGuard(i, { expression: $event })"
+                          placeholder="msg.value > 0"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'pause') {
+                      <p class="no-fields">Adds a per-transition pause check — no config needed.</p>
+                    }
+
+                    @if (entry.guard.type === 'postcondition') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Assert Expression</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asPostcondition(entry.guard).expression"
+                          (ngModelChange)="patchGuard(i, { expression: $event })"
+                          placeholder="balance >= minBalance"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'return-value') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Return Expression</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asReturnValue(entry.guard).expression"
+                          (ngModelChange)="patchGuard(i, { expression: $event })"
+                          placeholder="token.transfer(to, amount)"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'timelock') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Min Delay</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asTimelock(entry.guard).delay"
+                          (ngModelChange)="patchGuard(i, { delay: $event })"
+                          placeholder="1 days"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'cooldown') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Cooldown Interval</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asCooldown(entry.guard).interval"
+                          (ngModelChange)="patchGuard(i, { interval: $event })"
+                          placeholder="1 hours"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'window') {
+                      <div class="two-col">
+                        <mat-form-field appearance="fill" class="full-width">
+                          <mat-label>Window Start</mat-label>
+                          <input
+                            matInput
+                            class="mono"
+                            [ngModel]="asWindow(entry.guard).start"
+                            (ngModelChange)="patchGuard(i, { start: $event })"
+                            placeholder="block.timestamp"
+                          />
+                        </mat-form-field>
+
+                        <mat-form-field appearance="fill" class="full-width">
+                          <mat-label>Window End</mat-label>
+                          <input
+                            matInput
+                            class="mono"
+                            [ngModel]="asWindow(entry.guard).end"
+                            (ngModelChange)="patchGuard(i, { end: $event })"
+                            placeholder="block.timestamp + 1 days"
+                          />
+                        </mat-form-field>
+                      </div>
+                    }
+
+                    @if (entry.guard.type === 'source-whitelist') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Oracle Address</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asSourceWhitelist(entry.guard).address"
+                          (ngModelChange)="patchGuard(i, { address: $event })"
+                          placeholder="0x..."
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'freshness') {
+                      <mat-form-field appearance="fill" class="full-width">
+                        <mat-label>Max Age</mat-label>
+                        <input
+                          matInput
+                          class="mono"
+                          [ngModel]="asFreshness(entry.guard).maxAge"
+                          (ngModelChange)="patchGuard(i, { maxAge: $event })"
+                          placeholder="1 hours"
+                        />
+                      </mat-form-field>
+                    }
+
+                    @if (entry.guard.type === 'sanity-bound') {
+                      <div class="two-col">
+                        <mat-form-field appearance="fill" class="full-width">
+                          <mat-label>Min Value</mat-label>
+                          <input
+                            matInput
+                            class="mono"
+                            [ngModel]="asSanityBound(entry.guard).min"
+                            (ngModelChange)="patchGuard(i, { min: $event })"
+                            placeholder="0"
+                          />
+                        </mat-form-field>
+
+                        <mat-form-field appearance="fill" class="full-width">
+                          <mat-label>Max Value</mat-label>
+                          <input
+                            matInput
+                            class="mono"
+                            [ngModel]="asSanityBound(entry.guard).max"
+                            (ngModelChange)="patchGuard(i, { max: $event })"
+                            placeholder="1000"
+                          />
+                        </mat-form-field>
+                      </div>
+                    }
+
                     <mat-form-field appearance="fill" class="full-width">
-                      <mat-label>Window Start</mat-label>
-                      <input matInput class="mono"
-                        [ngModel]="asWindow(entry.guard).start"
-                        (ngModelChange)="patchGuard(i, { start: $event })"
-                        placeholder="block.timestamp" />
-                    </mat-form-field>
-                    <mat-form-field appearance="fill" class="full-width">
-                      <mat-label>Window End</mat-label>
-                      <input matInput class="mono"
-                        [ngModel]="asWindow(entry.guard).end"
-                        (ngModelChange)="patchGuard(i, { end: $event })"
-                        placeholder="block.timestamp + 1 days" />
+                      <mat-label>Error message</mat-label>
+                      <input
+                        matInput
+                        class="mono"
+                        [ngModel]="entry.errorMessage ?? ''"
+                        (ngModelChange)="setErrorMessage(i, $event)"
+                        placeholder="Guard condition failed"
+                      />
                     </mat-form-field>
                   </div>
-                }
-                @if (entry.guard.type === 'source-whitelist') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Oracle Address</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asSourceWhitelist(entry.guard).address"
-                      (ngModelChange)="patchGuard(i, { address: $event })"
-                      placeholder="0x..." />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'freshness') {
-                  <mat-form-field appearance="fill" class="full-width">
-                    <mat-label>Max Age</mat-label>
-                    <input matInput class="mono"
-                      [ngModel]="asFreshness(entry.guard).maxAge"
-                      (ngModelChange)="patchGuard(i, { maxAge: $event })"
-                      placeholder="1 hours" />
-                  </mat-form-field>
-                }
-                @if (entry.guard.type === 'sanity-bound') {
-                  <div class="two-col">
-                    <mat-form-field appearance="fill" class="full-width">
-                      <mat-label>Min Value</mat-label>
-                      <input matInput class="mono"
-                        [ngModel]="asSanityBound(entry.guard).min"
-                        (ngModelChange)="patchGuard(i, { min: $event })"
-                        placeholder="0" />
-                    </mat-form-field>
-                    <mat-form-field appearance="fill" class="full-width">
-                      <mat-label>Max Value</mat-label>
-                      <input matInput class="mono"
-                        [ngModel]="asSanityBound(entry.guard).max"
-                        (ngModelChange)="patchGuard(i, { max: $event })"
-                        placeholder="1000" />
-                    </mat-form-field>
-                  </div>
-                }
-                <mat-form-field appearance="fill" class="full-width">
-                  <mat-label>Error message</mat-label>
-                  <input
-                    matInput
-                    class="mono"
-                    [ngModel]="entry.errorMessage ?? ''"
-                    (ngModelChange)="setErrorMessage(i, $event)"
-                    placeholder="Guard condition failed"
-                  />
-                </mat-form-field>
-              </div>
-            </div>
+                </div>
+              }
+            }
           }
         </div>
       }
@@ -401,6 +463,14 @@ export class GuardSelectorComponent {
       i === index ? { ...e, guard: { ...e.guard, ...patch } as FsmGuard } : e
     );
     this.emit(guards);
+  }
+
+  activeGuardsByCategory(cat: string): FsmGuardConfig['guards'] {
+    return this.activeGuards.filter((entry) => this.categoryOf(entry.guard.type) === cat);
+  }
+
+  activeGuardIndex(entry: FsmGuardConfig['guards'][number]): number {
+    return this.activeGuards.indexOf(entry);
   }
 
   private emit(guards: FsmGuardConfig['guards']): void {

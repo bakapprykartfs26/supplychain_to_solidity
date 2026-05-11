@@ -165,6 +165,10 @@ export class SolidityGenService {
         lines.push(`        require(${t.guard}, "Guard condition failed");`);
       }
 
+      this.emitGuardRequires(lines, t.guardConfig, '        ', {
+        entryOnly: true,
+      });
+
       if (t.statementsMode === 'code' && t.rawStatements) {
         for (const line of t.rawStatements.split('\n')) {
           lines.push(`        ${line}`);
@@ -172,6 +176,10 @@ export class SolidityGenService {
       } else {
         lines.push(...this.generateStatements(t.statements ?? [], '        '));
       }
+
+      this.emitGuardRequires(lines, t.guardConfig, '        ', {
+        exitOnly: true,
+      });
 
       const fromState = `State.${this.toIdentifier(t.from)}`;
       const toState = `State.${this.toIdentifier(t.to)}`;
@@ -187,6 +195,8 @@ export class SolidityGenService {
         lines.push(`        emit StateChanged(${toState});`);
       }
 
+      lines.push(`        currentState = ${toState};`);
+
       if (t.emitEvent && t.emitEvent !== '' && t.emitEvent !== 'true') {
         const evDef = (def.events ?? []).find((e) => e.name === t.emitEvent);
         if (evDef) {
@@ -197,7 +207,6 @@ export class SolidityGenService {
         }
       }
 
-      lines.push(`        currentState = ${toState};`);
       lines.push('    }');
       lines.push('');
     }
@@ -231,6 +240,80 @@ export class SolidityGenService {
       }
     }
     return lines;
+  }
+
+  private isExitGuard(entry: import('@solidflow/shared').FsmGuardConfig['guards'][number]): boolean {
+    return entry.guard.type === 'postcondition' || entry.guard.type === 'return-value';
+  }
+
+  private emitGuardRequires(
+    lines: string[],
+    guardConfig: import('@solidflow/shared').FsmGuardConfig | undefined,
+    indent: string,
+    options?: {
+      entryOnly?: boolean;
+      exitOnly?: boolean;
+    },
+  ): void {
+    let guards = guardConfig?.guards ?? [];
+
+    if (options?.entryOnly) {
+      guards = guards.filter((entry) => !this.isExitGuard(entry));
+    }
+
+    if (options?.exitOnly) {
+      guards = guards.filter((entry) => this.isExitGuard(entry));
+    }
+
+    for (const entry of guards) {
+      const expression = this.guardExpression(entry.guard);
+
+      if (!expression) continue;
+
+      lines.push(
+        `${indent}require(${expression}, "${entry.errorMessage || 'Guard condition failed'}");`,
+      );
+    }
+  }
+
+  private guardExpression(guard: import('@solidflow/shared').FsmGuard): string | null {
+    switch (guard.type) {
+      case 'access-control':
+        return `msg.sender == ${guard.role === 'owner' ? 'owner' : guard.role}`;
+
+      case 'input-validation':
+        return guard.expression;
+
+      case 'pause':
+        return 'true';
+
+      case 'postcondition':
+        return guard.expression;
+
+      case 'return-value':
+        return guard.expression;
+
+      case 'timelock':
+        return `block.timestamp >= lastCall + ${guard.delay}`;
+
+      case 'cooldown':
+        return `block.timestamp >= lastCall + ${guard.interval}`;
+
+      case 'window':
+        return `block.timestamp >= ${guard.start} && block.timestamp <= ${guard.end}`;
+
+      case 'source-whitelist':
+        return `msg.sender == ${guard.address}`;
+
+      case 'freshness':
+        return `block.timestamp - lastUpdate <= ${guard.maxAge}`;
+
+      case 'sanity-bound':
+        return `value >= ${guard.min} && value <= ${guard.max}`;
+
+      default:
+        return null;
+    }
   }
 
   private toIdentifier(name: string): string {
