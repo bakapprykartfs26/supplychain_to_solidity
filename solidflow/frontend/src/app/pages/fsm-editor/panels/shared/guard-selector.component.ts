@@ -115,7 +115,7 @@ function defaultGuard(type: FsmGuard['type']): FsmGuard {
             @if (activeGuardsByCategory(cat).length) {
               <div class="active-header">{{ cat }} Guards</div>
 
-              @for (entry of activeGuardsByCategory(cat); track entry; let localIndex = $index) {
+              @for (entry of activeGuardsByCategory(cat); track $index; let localIndex = $index) {
                 @let i = activeGuardIndex(entry);
 
                 <div class="active-item">
