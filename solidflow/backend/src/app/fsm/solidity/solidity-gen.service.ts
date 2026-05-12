@@ -243,7 +243,7 @@ export class SolidityGenService {
   }
 
   private isExitGuard(entry: import('@solidflow/shared').FsmGuardConfig['guards'][number]): boolean {
-    return entry.guard.type === 'postcondition' || entry.guard.type === 'return-value';
+    return entry.guard.type === 'postcondition';
   }
 
   private emitGuardRequires(
@@ -288,9 +288,6 @@ export class SolidityGenService {
         return 'true';
 
       case 'postcondition':
-        return guard.expression;
-
-      case 'return-value':
         return guard.expression;
 
       case 'timelock':
