@@ -29,7 +29,7 @@ import type { FsmDefinition, FsmContractVariable, FsmMapping } from '@solidflow/
           <div class="var-row-top">
             <mat-form-field appearance="fill" class="var-type">
               <mat-label>Type</mat-label>
-              <mat-select [ngModel]="v.type" (ngModelChange)="patch(i, { type: $event })">
+              <mat-select [ngModel]="v.type" (ngModelChange)="updateVariable(i, $event)">
                 @for (type of getAvailableTypes(); track type) {
                   <mat-option [value]="type">{{ type }}</mat-option>
                 }
@@ -39,13 +39,13 @@ import type { FsmDefinition, FsmContractVariable, FsmMapping } from '@solidflow/
             <app-array-editor
               [isArray]="v.isArray ?? false"
               [dimensions]="v.dimensions ?? []"
-              (isArrayChange)="patch(i, { isArray: $any($event) })"
-              (dimensionsChange)="patch(i, { dimensions: $any($event) })"
+              (isArrayChange)="patchVariable(i, { isArray: $any($event) })"
+              (dimensionsChange)="patchVariable(i, { dimensions: $any($event) })"
             />
 
             <mat-form-field appearance="fill" class="var-name">
               <mat-label>Name</mat-label>
-              <input matInput [ngModel]="v.name" (ngModelChange)="patch(i, { name: $event })" spellcheck="false" class="mono" />
+              <input matInput [ngModel]="v.name" (ngModelChange)="patchVariable(i, { name: $event })" spellcheck="false" class="mono" />
             </mat-form-field>
 
             <button mat-icon-button class="sf-icon-btn-danger" (click)="remove(i)">
@@ -56,22 +56,38 @@ import type { FsmDefinition, FsmContractVariable, FsmMapping } from '@solidflow/
           <div class="var-row-bot">
             <mat-form-field appearance="fill" class="var-vis">
               <mat-label>Visibility</mat-label>
-              <mat-select [ngModel]="v.visibility ?? 'public'" (ngModelChange)="patch(i, { visibility: $event })">
+              <mat-select [ngModel]="v.visibility ?? 'public'" (ngModelChange)="patchVariable(i, { visibility: $event })">
                 <mat-option value="public">public</mat-option>
                 <mat-option value="private">private</mat-option>
                 <mat-option value="internal">internal</mat-option>
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="fill" class="var-init">
-              <mat-label>Initial value</mat-label>
-              <input matInput [ngModel]="v.initialValue ?? ''" (ngModelChange)="patch(i, { initialValue: $event || undefined })" placeholder="optional" spellcheck="false" class="mono" />
-            </mat-form-field>
+            @if (v.type === 'State') {
+              <mat-form-field appearance="fill" class="full-width">
+                <mat-label>Initial state</mat-label>
+                <mat-select
+                  [ngModel]="stateNameFromInitialValue(v.initialValue)"
+                  (ngModelChange)="patchVariable(i, { initialValue: 'State.' + toIdentifier($event) })"
+                >
+                  @for (state of definition.states; track state) {
+                    <mat-option [value]="state">
+                      {{ state }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="fill" class="var-init">
+                <mat-label>Initial value</mat-label>
+                <input matInput [ngModel]="v.initialValue ?? ''" (ngModelChange)="patchVariable(i, { initialValue: $event || undefined })" placeholder="optional" spellcheck="false" class="mono" />
+              </mat-form-field>
+            }
           </div>
         </div>
       }
 
-      <button mat-stroked-button class="add-btn" (click)="add()">
+      <button mat-stroked-button class="add-btn" (click)="addVariable()">
         <mat-icon>add</mat-icon>
         Add Variable
       </button>
@@ -238,7 +254,7 @@ export class VariablesPanelComponent {
     return [...this.solidityTypes, ...customTypeNames];
   }
 
-  add(): void {
+  addVariable(): void {
     const v: FsmContractVariable = {
       name: `var${(this.definition.variables ?? []).length + 1}`,
       type: 'uint256',
@@ -247,9 +263,21 @@ export class VariablesPanelComponent {
     this.definitionChange.emit({ ...this.definition, variables: [...(this.definition.variables ?? []), v] });
   }
 
-  patch(i: number, partial: Partial<FsmContractVariable>): void {
+  patchVariable(i: number, partial: Partial<FsmContractVariable>): void {
     const variables = (this.definition.variables ?? []).map((v, idx) => idx === i ? { ...v, ...partial } : v);
     this.definitionChange.emit({ ...this.definition, variables });
+  }
+
+  updateVariable(i: number, type: string): void {
+    const firstState = this.definition.states[0];
+
+    this.patchVariable(i, {
+      type,
+      initialValue:
+        type === 'State' && firstState
+          ? `State.${this.toIdentifier(firstState)}`
+          : undefined,
+    });
   }
 
   remove(i: number): void {
@@ -318,5 +346,19 @@ export class VariablesPanelComponent {
     const customTypes = (this.definition.customTypes ?? []).map((ct, i) =>
       i === ci ? { ...ct, fields: ct.fields.filter((_, j) => j !== fi) } : ct);
     this.definitionChange.emit({ ...this.definition, customTypes });
+  }
+
+  stateNameFromInitialValue(value?: string): string {
+    if (!value) return this.definition.states[0] ?? '';
+
+    return value.startsWith('State.')
+      ? value.slice('State.'.length)
+      : value;
+  }
+
+  toIdentifier(name: string): string {
+    return name
+      .replace(/[^a-zA-Z0-9_]/g, '_')
+      .replace(/^([0-9])/, '_$1');
   }
 }
