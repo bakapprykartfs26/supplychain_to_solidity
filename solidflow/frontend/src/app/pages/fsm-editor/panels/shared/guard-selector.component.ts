@@ -414,6 +414,13 @@ export class GuardSelectorComponent {
       return;
     }
 
+    if (
+      type === 'pause' &&
+      this.activeGuards.some((entry) => entry.guard.type === 'pause')
+    ) {
+      return;
+    }
+
     const guards: FsmGuardConfig['guards'] = [
       ...this.activeGuards,
       {

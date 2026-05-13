@@ -219,8 +219,11 @@ export class ConstructorPanelComponent {
     const paramStr = params.join(',\n        ');
     const lines = [
       `constructor(${params.length ? '\n        ' + paramStr + '\n    ' : ''}) {`,
+      ...this.constructorGuardPreviewLines(cfg?.guardConfig, 'Entry'),
+      ...this.constructorGuardPreviewLines(cfg?.guardConfig, 'TemporalOracle'),
       `        createdAt = block.timestamp;`,
       ...assigns,
+      ...this.constructorGuardPreviewLines(cfg?.guardConfig, 'Exit'),
       `    }`,
     ];
     return lines.join('\n');
@@ -242,5 +245,74 @@ export class ConstructorPanelComponent {
         ...partial,
       },
     });
+  }
+
+  private constructorGuardPreviewLines(
+    guardConfig: FsmConstructorConfig['guardConfig'],
+    category: 'Entry' | 'TemporalOracle' | 'Exit',
+  ): string[] {
+    const guards = guardConfig?.guards ?? [];
+
+    const filtered = guards.filter((entry) => {
+      const type = entry.guard.type;
+
+      if (category === 'Entry') {
+        return type === 'access-control' || type === 'input-validation';
+      }
+
+      if (category === 'Exit') {
+        return type === 'postcondition';
+      }
+
+      return (
+        type === 'timelock' ||
+        type === 'cooldown' ||
+        type === 'window' ||
+        type === 'source-whitelist' ||
+        type === 'freshness' ||
+        type === 'sanity-bound'
+      );
+    });
+
+    if (!filtered.length) return [];
+
+    const expression = filtered
+      .map((entry, i) => {
+        const expr = `(${this.guardPreviewExpression(entry.guard)})`;
+        if (i === filtered.length - 1) return expr;
+        return `${expr} ${entry.operator === 'OR' ? '||' : '&&'}`;
+      })
+      .join(' ');
+
+    const error =
+      filtered.find((entry) => entry.errorMessage?.trim())?.errorMessage?.trim() ??
+      'Guard condition failed';
+
+    return [`        require(${expression}, "${error}");`];
+  }
+
+  private guardPreviewExpression(guard: import('@solidflow/shared').FsmGuard): string {
+    switch (guard.type) {
+      case 'access-control':
+        return `msg.sender == ${guard.role === 'owner' ? 'owner' : guard.role}`;
+      case 'input-validation':
+        return guard.expression;
+      case 'pause':
+        return 'true';
+      case 'postcondition':
+        return guard.expression;
+      case 'timelock':
+        return `block.timestamp >= lastCall + ${guard.delay}`;
+      case 'cooldown':
+        return `block.timestamp >= lastCall + ${guard.interval}`;
+      case 'window':
+        return `block.timestamp >= ${guard.start} && block.timestamp <= ${guard.end}`;
+      case 'source-whitelist':
+        return `msg.sender == ${guard.address}`;
+      case 'freshness':
+        return `block.timestamp - lastUpdate <= ${guard.maxAge}`;
+      case 'sanity-bound':
+        return `msg.value >= ${guard.min} && msg.value <= ${guard.max}`;
+    }
   }
 }
