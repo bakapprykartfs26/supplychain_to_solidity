@@ -202,15 +202,6 @@ const TABS: { id: TabId; label: string }[] = [
                 </div>
               }
 
-              @if (preview.stats.removedDeadStates.length > 0) {
-                <div class="dialog-section">
-                  <div class="dialog-section-label">Dead-end states to remove</div>
-                  @for (s of preview.stats.removedDeadStates; track s) {
-                    <div class="dialog-tag dialog-tag--orange">{{ s }}</div>
-                  }
-                </div>
-              }
-
               @if (preview.stats.mergedStates | keyvalue; as merges) {
                 @if (merges.length > 0) {
                   <div class="dialog-section">

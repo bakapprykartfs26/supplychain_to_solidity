@@ -24,7 +24,6 @@ describe('minimizeFsm', () => {
     expect(stats.alreadyMinimal).toBe(true);
     expect(stats.minimizedStateCount).toBe(4);
     expect(stats.removedUnreachableStates).toHaveLength(0);
-    expect(stats.removedDeadStates).toHaveLength(0);
     expect(stats.mergedStates).toEqual({});
   });
 
@@ -67,21 +66,25 @@ describe('minimizeFsm', () => {
     expect(minimized.states).toHaveLength(3);
   });
 
-  it('removes dead states but never the initialState', () => {
-    // Trap is reachable from Start but has no path to any terminal state
+  it('preserves reachable dead-end/trap states', () => {
+    // Trap is reachable from Start but has no path to any terminal state.
+    // In Solidflow this is still a valid user-modeled state and must not be deleted.
     const def = fsm(
       ['Start', 'Terminal', 'Trap'],
       'Start',
       [
         tr('finish', 'Start', 'Terminal'),
         tr('trap', 'Start', 'Trap'),
-        tr('loop', 'Trap', 'Trap'), // only self-loop, never reaches Terminal
+        tr('loop', 'Trap', 'Trap'),
       ],
     );
+  
     const { minimized, stats } = minimizeFsm(def);
-    expect(stats.removedDeadStates).toContain('Trap');
-    expect(minimized.states).not.toContain('Trap');
+  
+    expect(minimized.states).toContain('Trap');
     expect(minimized.states).toContain('Start');
+    expect(minimized.states).toContain('Terminal');
+    expect(stats.removedUnreachableStates).toHaveLength(0);
   });
 
   it('preserves self-loops', () => {

@@ -6,7 +6,6 @@ export interface FsmMinimizationStats {
   originalTransitionCount: number;
   minimizedTransitionCount: number;
   removedUnreachableStates: string[];
-  removedDeadStates: string[];
   /** Maps each merged-away state name to its representative. */
   mergedStates: Record<string, string>;
   /** Transitions present in the original FSM that are absent after minimization. */
@@ -37,38 +36,6 @@ function computeReachableStates(states: string[], transitions: FsmTransition[], 
   }
   // Only return states that are in the declared states array
   return new Set(states.filter((s) => reachable.has(s)));
-}
-
-function computeDeadStates(
-  states: string[],
-  transitions: FsmTransition[],
-  initial: string,
-): Set<string> {
-  // Terminal states = states with no outgoing transitions
-  const outgoing = new Set(transitions.map((t) => t.from));
-  const terminals = states.filter((s) => !outgoing.has(s));
-
-  // If there are no terminal states, skip dead-state pruning entirely
-  if (terminals.length === 0) return new Set();
-
-  // Backward BFS from terminals
-  const live = new Set<string>(terminals);
-  const queue = [...terminals];
-  while (queue.length > 0) {
-    const s = queue.shift()!;
-    for (const t of transitions) {
-      if (t.to === s && !live.has(t.from)) {
-        live.add(t.from);
-        queue.push(t.from);
-      }
-    }
-  }
-
-  const dead = new Set<string>();
-  for (const s of states) {
-    if (!live.has(s) && s !== initial) dead.add(s);
-  }
-  return dead;
 }
 
 // ---------------------------------------------------------------------------
@@ -315,10 +282,10 @@ function rebuildFsm(
  * Minimizes an FSM using Hopcroft's algorithm.
  *
  * Steps:
- *  1. Remove unreachable states (not reachable from initialState).
- *  2. Remove dead states (no path to any terminal state), never the initialState.
- *  3. Run Hopcroft partitioning to find equivalent states.
- *  4. Merge equivalent states, preserving the representative's transition metadata.
+* Steps:
+*  1. Remove unreachable states (not reachable from initialState).
+*  2. Run Hopcroft partitioning to find equivalent states.
+*  3. Merge equivalent states, preserving the representative's transition metadata.
  */
 export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
   const originalStateCount = def.states.length;
@@ -339,13 +306,8 @@ export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
   );
 
   // Phase 0b: dead states
-  const dead = computeDeadStates(reachableStates, reachableTransitions, def.initialState);
-  const removedDead = reachableStates.filter((s) => dead.has(s));
-
-  const workingStates = reachableStates.filter((s) => !dead.has(s));
-  const workingTransitions = reachableTransitions.filter(
-    (t) => !dead.has(t.from) && !dead.has(t.to),
-  );
+  const workingStates = reachableStates;
+  const workingTransitions = reachableTransitions;
 
   // Phase 1: Hopcroft
   const alphabet = [...new Set(workingTransitions.map(transitionBodySignature))];
@@ -366,7 +328,6 @@ export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
 
   const nothingChanged =
     removedUnreachable.length === 0 &&
-    removedDead.length === 0 &&
     Object.keys(mergedStates).length === 0 &&
     minimized.transitions.length === originalTransitionCount;
 
@@ -378,7 +339,6 @@ export function minimizeFsm(def: FsmDefinition): FsmMinimizationResult {
       originalTransitionCount,
       minimizedTransitionCount: minimized.transitions.length,
       removedUnreachableStates: removedUnreachable,
-      removedDeadStates: removedDead,
       mergedStates,
       removedTransitions,
       alreadyMinimal: nothingChanged,
@@ -399,7 +359,6 @@ function identity(
       originalTransitionCount,
       minimizedTransitionCount: originalTransitionCount,
       removedUnreachableStates: [],
-      removedDeadStates: [],
       mergedStates: {},
       removedTransitions: [],
       alreadyMinimal: true,
