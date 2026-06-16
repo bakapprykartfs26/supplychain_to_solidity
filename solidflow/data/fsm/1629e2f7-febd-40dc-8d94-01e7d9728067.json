@@ -1,0 +1,296 @@
+{
+  "id": "1629e2f7-febd-40dc-8d94-01e7d9728067",
+  "name": "Finished Escrow",
+  "states": [
+    "Idle",
+    "Funded",
+    "Completed",
+    "Disputed",
+    "Refunded"
+  ],
+  "initialState": "Idle",
+  "transitions": [
+    {
+      "id": "t1-fund",
+      "name": "fund",
+      "from": "Idle",
+      "to": "Funded",
+      "payable": true,
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.sender == payer"
+            },
+            "operator": "AND",
+            "errorMessage": "Only the payer can fund the escrow"
+          },
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.value == amount"
+            },
+            "operator": "AND",
+            "errorMessage": "Incorrect funding amount"
+          }
+        ]
+      },
+      "statements": [],
+      "emitEvent": "Funded",
+      "emitEventArgs": [
+        "msg.sender",
+        "msg.value"
+      ]
+    },
+    {
+      "id": "t2-complete",
+      "name": "complete",
+      "from": "Funded",
+      "to": "Completed",
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.sender == payer"
+            },
+            "operator": "AND",
+            "errorMessage": "Only the payer can confirm completion"
+          }
+        ]
+      },
+      "statements": [
+        "payable(provider).transfer(amount);"
+      ],
+      "emitEvent": "Completed",
+      "emitEventArgs": [
+        "provider",
+        "amount"
+      ]
+    },
+    {
+      "id": "t3-dispute",
+      "name": "dispute",
+      "from": "Funded",
+      "to": "Disputed",
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.sender == payer || msg.sender == provider"
+            },
+            "operator": "AND",
+            "errorMessage": "Only payer or provider can raise a dispute"
+          }
+        ]
+      },
+      "statements": [],
+      "emitEvent": "Disputed",
+      "emitEventArgs": [
+        "msg.sender"
+      ]
+    },
+    {
+      "id": "t4-resolve-provider",
+      "name": "resolveForProvider",
+      "from": "Disputed",
+      "to": "Completed",
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.sender == arbiter"
+            },
+            "operator": "AND",
+            "errorMessage": "Only the arbiter can resolve disputes"
+          }
+        ]
+      },
+      "statements": [
+        "payable(provider).transfer(amount);"
+      ],
+      "emitEvent": "Resolved",
+      "emitEventArgs": [
+        "provider",
+        "amount"
+      ]
+    },
+    {
+      "id": "t5-resolve-payer",
+      "name": "resolveForPayer",
+      "from": "Disputed",
+      "to": "Refunded",
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.sender == arbiter"
+            },
+            "operator": "AND",
+            "errorMessage": "Only the arbiter can resolve disputes"
+          }
+        ]
+      },
+      "statements": [
+        "payable(payer).transfer(amount);"
+      ],
+      "emitEvent": "Resolved",
+      "emitEventArgs": [
+        "payer",
+        "amount"
+      ]
+    },
+    {
+      "id": "t6-refund",
+      "name": "refund",
+      "from": "Funded",
+      "to": "Refunded",
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "input-validation",
+              "expression": "msg.sender == payer"
+            },
+            "operator": "AND",
+            "errorMessage": "Only the payer can request a refund"
+          },
+          {
+            "guard": {
+              "type": "deadline",
+              "timestamp": "deadline"
+            },
+            "operator": "AND",
+            "errorMessage": "Refund deadline has not passed yet"
+          }
+        ]
+      },
+      "statements": [
+        "payable(payer).transfer(amount);"
+      ],
+      "emitEvent": "Refunded",
+      "emitEventArgs": [
+        "payer",
+        "amount"
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "payer",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "provider",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "arbiter",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "amount",
+      "type": "uint256",
+      "visibility": "public"
+    }
+  ],
+  "events": [
+    {
+      "name": "Funded",
+      "params": [
+        {
+          "name": "payer",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "name": "Completed",
+      "params": [
+        {
+          "name": "provider",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "name": "Disputed",
+      "params": [
+        {
+          "name": "raisedBy",
+          "type": "address",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "name": "Resolved",
+      "params": [
+        {
+          "name": "winner",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "name": "Refunded",
+      "params": [
+        {
+          "name": "payer",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ]
+    }
+  ],
+  "plugins": {
+    "locking": true,
+    "accessControl": false,
+    "transitionCounter": false,
+    "timedTransitions": false,
+    "event": false
+  },
+  "constructorConfig": {
+    "includedVariables": [
+      "payer",
+      "provider",
+      "arbiter",
+      "amount"
+    ],
+    "includedArrays": [],
+    "includedStructs": []
+  },
+  "updatedAt": "2026-06-16T10:18:57.339Z"
+}
