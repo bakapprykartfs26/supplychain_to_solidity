@@ -1,0 +1,125 @@
+{
+  "id": "c20ddb39-c388-4a2c-a8e9-7f8c56fa31a9",
+  "name": "Escrow - 3. & 4.  Transitions & Statements",
+  "states": [
+    "Idle",
+    "Funded",
+    "Completed",
+    "Disputed",
+    "Refunded"
+  ],
+  "initialState": "Idle",
+  "transitions": [
+    {
+      "id": "t1-fund",
+      "name": "fund",
+      "from": "Idle",
+      "to": "Funded",
+      "payable": true,
+      "inputs": [],
+      "statements": []
+    },
+    {
+      "id": "t2-complete",
+      "name": "complete",
+      "from": "Funded",
+      "to": "Completed",
+      "inputs": [],
+      "statements": [
+        "payable(provider).transfer(amount);"
+      ]
+    },
+    {
+      "id": "t3-dispute",
+      "name": "dispute",
+      "from": "Funded",
+      "to": "Disputed",
+      "inputs": [],
+      "statements": []
+    },
+    {
+      "id": "t4-resolve-provider",
+      "name": "resolveForProvider",
+      "from": "Disputed",
+      "to": "Completed",
+      "inputs": [],
+      "statements": [
+        "payable(provider).transfer(amount);"
+      ]
+    },
+    {
+      "id": "t5-resolve-payer",
+      "name": "resolveForPayer",
+      "from": "Disputed",
+      "to": "Refunded",
+      "inputs": [],
+      "statements": [
+        "payable(payer).transfer(amount);"
+      ]
+    },
+    {
+      "id": "t6-refund",
+      "name": "refund",
+      "from": "Funded",
+      "to": "Refunded",
+      "inputs": [],
+      "guardConfig": {
+        "guards": [
+          {
+            "guard": {
+              "type": "deadline",
+              "timestamp": "deadline"
+            },
+            "operator": "AND",
+            "errorMessage": "Refund deadline has not passed yet"
+          }
+        ]
+      },
+      "statements": [
+        "payable(payer).transfer(amount);"
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "payer",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "provider",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "arbiter",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "amount",
+      "type": "uint256",
+      "visibility": "public"
+    }
+  ],
+  "events": [],
+  "plugins": {
+    "locking": false,
+    "accessControl": false,
+    "transitionCounter": false,
+    "timedTransitions": false,
+    "event": false
+  },
+  "constructorConfig": {
+    "includedVariables": [
+      "payer",
+      "provider",
+      "arbiter",
+      "amount"
+    ],
+    "includedArrays": [],
+    "includedStructs": []
+  },
+  "createdAt": "2026-06-21T07:35:21.153Z",
+  "updatedAt": "2026-06-21T09:42:28.546Z"
+}

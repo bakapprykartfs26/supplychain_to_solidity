@@ -1,0 +1,55 @@
+{
+  "id": "716643e9-fbc6-462a-aa3a-e108c81a9ed3",
+  "name": "Escrow - 1. &  2. States, Variables, Constructor",
+  "states": [
+    "Idle",
+    "Funded",
+    "Completed",
+    "Disputed",
+    "Refunded"
+  ],
+  "initialState": "Idle",
+  "transitions": [],
+  "variables": [
+    {
+      "name": "payer",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "provider",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "arbiter",
+      "type": "address",
+      "visibility": "public"
+    },
+    {
+      "name": "amount",
+      "type": "uint256",
+      "visibility": "public"
+    }
+  ],
+  "events": [],
+  "plugins": {
+    "locking": false,
+    "accessControl": false,
+    "transitionCounter": false,
+    "timedTransitions": false,
+    "event": false
+  },
+  "constructorConfig": {
+    "includedVariables": [
+      "payer",
+      "provider",
+      "arbiter",
+      "amount"
+    ],
+    "includedArrays": [],
+    "includedStructs": []
+  },
+  "createdAt": "2026-06-21T07:36:44.322Z",
+  "updatedAt": "2026-06-21T09:44:55.273Z"
+}

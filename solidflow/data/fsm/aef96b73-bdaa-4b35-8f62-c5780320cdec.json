@@ -1,6 +1,6 @@
 {
-  "id": "1629e2f7-febd-40dc-8d94-01e7d9728067",
-  "name": "Escrow - (Finished) 7. & 8. Guards & Plugins",
+  "id": "aef96b73-bdaa-4b35-8f62-c5780320cdec",
+  "name": "Escrow - 6. Events in Transitions",
   "states": [
     "Idle",
     "Funded",
@@ -17,26 +17,6 @@
       "to": "Funded",
       "payable": true,
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the payer can fund the escrow"
-          },
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.value>=amount"
-            },
-            "operator": "AND",
-            "errorMessage": "Incorrect funding amount"
-          }
-        ]
-      },
       "statements": [],
       "emitEvent": "Funded",
       "emitEventArgs": [
@@ -50,18 +30,6 @@
       "from": "Funded",
       "to": "Completed",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the payer can confirm completion"
-          }
-        ]
-      },
       "statements": [
         "payable(provider).transfer(amount);"
       ],
@@ -77,18 +45,6 @@
       "from": "Funded",
       "to": "Disputed",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer || msg.sender == provider"
-            },
-            "operator": "AND",
-            "errorMessage": "Only payer or provider can raise a dispute"
-          }
-        ]
-      },
       "statements": [],
       "emitEvent": "Disputed",
       "emitEventArgs": [
@@ -101,18 +57,6 @@
       "from": "Disputed",
       "to": "Completed",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == arbiter"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the arbiter can resolve disputes"
-          }
-        ]
-      },
       "statements": [
         "payable(provider).transfer(amount);"
       ],
@@ -128,18 +72,6 @@
       "from": "Disputed",
       "to": "Refunded",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == arbiter"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the arbiter can resolve disputes"
-          }
-        ]
-      },
       "statements": [
         "payable(payer).transfer(amount);"
       ],
@@ -157,14 +89,6 @@
       "inputs": [],
       "guardConfig": {
         "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the payer can request a refund"
-          },
           {
             "guard": {
               "type": "deadline",
@@ -276,7 +200,7 @@
     }
   ],
   "plugins": {
-    "locking": true,
+    "locking": false,
     "accessControl": false,
     "transitionCounter": false,
     "timedTransitions": false,
@@ -292,5 +216,6 @@
     "includedArrays": [],
     "includedStructs": []
   },
-  "updatedAt": "2026-06-21T09:36:47.193Z"
+  "createdAt": "2026-06-21T07:35:21.153Z",
+  "updatedAt": "2026-06-21T09:38:46.869Z"
 }

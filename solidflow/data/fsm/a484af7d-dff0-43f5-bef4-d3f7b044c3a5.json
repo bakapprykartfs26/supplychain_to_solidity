@@ -1,6 +1,6 @@
 {
-  "id": "1629e2f7-febd-40dc-8d94-01e7d9728067",
-  "name": "Escrow - (Finished) 7. & 8. Guards & Plugins",
+  "id": "a484af7d-dff0-43f5-bef4-d3f7b044c3a5",
+  "name": "Escrow - 5. Events",
   "states": [
     "Idle",
     "Funded",
@@ -17,32 +17,7 @@
       "to": "Funded",
       "payable": true,
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the payer can fund the escrow"
-          },
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.value>=amount"
-            },
-            "operator": "AND",
-            "errorMessage": "Incorrect funding amount"
-          }
-        ]
-      },
-      "statements": [],
-      "emitEvent": "Funded",
-      "emitEventArgs": [
-        "msg.sender",
-        "msg.value"
-      ]
+      "statements": []
     },
     {
       "id": "t2-complete",
@@ -50,25 +25,8 @@
       "from": "Funded",
       "to": "Completed",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the payer can confirm completion"
-          }
-        ]
-      },
       "statements": [
         "payable(provider).transfer(amount);"
-      ],
-      "emitEvent": "Completed",
-      "emitEventArgs": [
-        "provider",
-        "amount"
       ]
     },
     {
@@ -77,23 +35,7 @@
       "from": "Funded",
       "to": "Disputed",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer || msg.sender == provider"
-            },
-            "operator": "AND",
-            "errorMessage": "Only payer or provider can raise a dispute"
-          }
-        ]
-      },
-      "statements": [],
-      "emitEvent": "Disputed",
-      "emitEventArgs": [
-        "msg.sender"
-      ]
+      "statements": []
     },
     {
       "id": "t4-resolve-provider",
@@ -101,25 +43,8 @@
       "from": "Disputed",
       "to": "Completed",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == arbiter"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the arbiter can resolve disputes"
-          }
-        ]
-      },
       "statements": [
         "payable(provider).transfer(amount);"
-      ],
-      "emitEvent": "Resolved",
-      "emitEventArgs": [
-        "provider",
-        "amount"
       ]
     },
     {
@@ -128,25 +53,8 @@
       "from": "Disputed",
       "to": "Refunded",
       "inputs": [],
-      "guardConfig": {
-        "guards": [
-          {
-            "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == arbiter"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the arbiter can resolve disputes"
-          }
-        ]
-      },
       "statements": [
         "payable(payer).transfer(amount);"
-      ],
-      "emitEvent": "Resolved",
-      "emitEventArgs": [
-        "payer",
-        "amount"
       ]
     },
     {
@@ -159,14 +67,6 @@
         "guards": [
           {
             "guard": {
-              "type": "input-validation",
-              "expression": "msg.sender == payer"
-            },
-            "operator": "AND",
-            "errorMessage": "Only the payer can request a refund"
-          },
-          {
-            "guard": {
               "type": "deadline",
               "timestamp": "deadline"
             },
@@ -177,11 +77,6 @@
       },
       "statements": [
         "payable(payer).transfer(amount);"
-      ],
-      "emitEvent": "Refunded",
-      "emitEventArgs": [
-        "payer",
-        "amount"
       ]
     }
   ],
@@ -276,7 +171,7 @@
     }
   ],
   "plugins": {
-    "locking": true,
+    "locking": false,
     "accessControl": false,
     "transitionCounter": false,
     "timedTransitions": false,
@@ -292,5 +187,6 @@
     "includedArrays": [],
     "includedStructs": []
   },
-  "updatedAt": "2026-06-21T09:36:47.193Z"
+  "createdAt": "2026-06-21T08:04:29.535Z",
+  "updatedAt": "2026-06-21T09:40:54.656Z"
 }
